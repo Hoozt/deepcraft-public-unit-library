@@ -5,20 +5,24 @@
 		<DisplayPath>/Utilities</DisplayPath>
 
 		<Description>
-			Cast/convert tensor elements from one type to another.
-			Supports basic types: integers (signed/unsigned) and floating point.
+			<Header>Description</Header>
+			Convert tensor elements from one data type to another, enabling data type transformations between floating-point and integer representations.
 			
-			Integer-to-integer conversions use range mapping to preserve full dynamic range.
-			Float conversions can be configured via Float Conversion Mode:
-			- Clamp: Traditional clamping to target range
-			- Range [0,1]: Maps normalized [0,1] float range to full integer range
-			- Range [-1,1]: Maps normalized [-1,1] float range to full integer range
+			This unit performs element-wise type casting while preserving the tensor shape and dimensions. It supports conversions between float32, signed integers (int8, int16, int32), and unsigned integers (uint8, uint16, uint32).
+			
+			For integer-to-integer conversions, the unit uses range mapping to preserve the full dynamic range of the values. For float-to-integer conversions, three modes are available:
+			- **Clamp**: Traditional clamping to the target type's range
+			- **Range [0,1]**: Maps normalized [0,1] float range to the full integer range
+			- **Range [-1,1]**: Maps normalized [-1,1] float range to the full integer range
+
+			<Header>Usage</Header>
+			Use the Cast unit when you need to convert data between different numeric types, such as preparing model outputs for display or converting between training and inference data formats.
 		</Description>
 
 		<Parameters>
-			<InputSocket name="input" />
+			<InputSocket name="input" description="Input tensor to be cast. Supports float32, signed integers (int8, int16, int32), and unsigned integers (uint8, uint16, uint32)."/>
 			
-			<StringOption name="output_type" text="Output Type" description="Target type to cast to" default="float32" >
+			<StringOption name="output_type" text="Output Type" description="Target data type for the conversion." default="float32" >
 				<OneOf>
 					<Item text="Float 32-bit">float32</Item>
 					<Item text="Signed Integer 8-bit">int8</Item>
@@ -30,7 +34,7 @@
 				</OneOf>
 			</StringOption>
 
-			<StringOption name="float_mode" text="Float Conversion Mode" description="How to handle float32 to integer conversions" default="range_0_1" >
+			<StringOption name="float_mode" text="Float Conversion Mode" description="Conversion strategy for float32 to/from integer conversions. Clamp uses direct clamping, Range [0,1] maps [0,1] to full integer range, Range [-1,1] maps [-1,1] to full integer range." default="range_0_1" >
 				<OneOf>
 					<Item text="Clamp to target range">clamp</Item>
 					<Item text="Range map [0,1] to target">range_0_1</Item>
@@ -38,11 +42,11 @@
 				</OneOf>
 			</StringOption>
 
-			<Expression name="count" value="input.shape.flat()" />
+			<Expression name="count" value="input.shape.flat()" description="Total number of elements in the input tensor (computed from flattened shape)."/>
 			
 			<OutputSocket
 				name="output" 
-				description="Cast output"
+				description="Cast output tensor with the specified data type. Has the same shape as the input."
 				type="System.parseType(output_type)" 
 				shape="input.shape" />
 		</Parameters>

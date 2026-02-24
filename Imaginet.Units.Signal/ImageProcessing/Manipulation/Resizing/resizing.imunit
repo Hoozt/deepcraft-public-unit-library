@@ -1,0 +1,97 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Imaginet version="2.0.0.0">
+	<Unit name="Imaginet.Units.Math.Resizing">
+		<DisplayName>Image Resize</DisplayName>
+		<DisplayPath>/Image Processing/Spatial Transformations</DisplayPath>
+		<Description>
+			<Header>Description</Header>
+			Resize an image to target dimensions using nearest neighbor, bilinear, or letterbox interpolation methods.
+			
+			This unit scales images to specified target dimensions using one of three interpolation methods. Nearest neighbor selects the closest source pixel (fast but blocky). Bilinear interpolates between four neighboring pixels for smooth results. Letterbox preserves aspect ratio by scaling to fit within target dimensions and adding black borders as needed.
+			
+			Input is an image tensor [H,W] or [H,W,C]. Output shape is [target_height, target_width] for grayscale or [target_height, target_width, channels] for multi-channel images.
+			
+			Supports float32 and uint8 data types.
+
+			<Header>Usage</Header>
+			Use the Image Resize unit to adapt images for model input requirements, scale for display, or standardize image dimensions in processing pipelines.
+		</Description>
+
+		<Parameters>
+			<InputSocket name="input" pipe="data" description="Input image tensor with shape [height, width] for grayscale or [height, width, channels] for multi-channel images. Supports float32 and uint8 data types." />
+
+			<Int32Option
+			  name="target_height"
+			  min="1"
+			  ui="textbox"
+			  text="Target Height"
+			  description="Desired output height in pixels. For letterbox mode, this is the maximum height; actual output may be smaller to preserve aspect ratio." />
+
+			<Int32Option
+			  name="target_width"
+			  min="1"
+			  ui="textbox"
+			  text="Target Width"
+			  description="Desired output width in pixels. For letterbox mode, this is the maximum width; actual output may be smaller to preserve aspect ratio." />
+
+					<Int32Option
+		  name="interpolation_mode"
+		  ui="textbox"
+		  text="Interpolation Mode"
+		  description="Interpolation method: Nearest Neighbor (fast, blocky), Bilinear (smooth, slower), or Letterbox (preserves aspect ratio with black borders)."
+		  default="0">
+			<OneOf>
+				<Item text="Nearest Neighbor">0</Item>
+				<Item text="Bilinear">1</Item>
+				<Item text="Letterbox">2</Item>
+			</OneOf>
+		</Int32Option>
+
+			<!-- Precomputed values -->
+			<Expression name="channels" value="input.shape.count == 2 ? 1 : input.shape.size(-3)" description="Number of channels in the input image (1 for grayscale, 3 for RGB)." />
+			<Expression name="index_offset" value="channels == 3 ? 1 : 0" description="Internal offset for dimension indexing based on channel count." />
+			<Expression name="input_height" value="input.shape.size(1+index_offset)" description="Height of the input image extracted from tensor shape." />
+			<Expression name="input_width" value="input.shape.size(0+index_offset)" description="Width of the input image extracted from tensor shape." />
+			<Expression name="step_height" value="input.shape.step(1+index_offset)" description="Internal stride for height dimension in the input tensor." />
+			<Expression name="step_width" value="input.shape.step(0+index_offset)" description="Internal stride for width dimension in the input tensor." />
+
+			<OutputSocket name="output" pipe="data" type="input.type"
+						  shape="input.shape.count == 2 ? System.Shape(target_height, target_width) : System.Shape(target_height, target_width, channels)" description="Resized image with shape [target_height, target_width] or [target_height, target_width, channels]. For letterbox mode, may include black borders. Has the same data type as the input." />
+		</Parameters>
+
+		<Contracts>
+			<Assert test="input.shape.count >= 2" error="Input must be at least 2D (HxW or HxWxC)." />
+			<Assert test="input_height > 0" error="Input height must be greater than 0" />
+			<Assert test="input_width > 0" error="Input width must be greater than 0" />
+			<Assert test="target_height > 0" error="Target height must be positive" />
+			<Assert test="target_width > 0" error="Target width must be positive" />
+		</Contracts>
+
+		<Implementations>
+			<Implementation language="C" fragment="resizing.h:resize_nearest_f32"
+							call="resize_nearest_f32(input, input_height, input_width, step_height, step_width, target_height, target_width, channels, output)">
+				<Conditional value="input.type == System.Float32 &amp;&amp; interpolation_mode == 0" />
+			</Implementation>
+			<Implementation language="C" fragment="resizing.h:resize_bilinear_f32"
+							call="resize_bilinear_f32(input, input_height, input_width, step_height, step_width, target_height, target_width, channels, output)">
+				<Conditional value="input.type == System.Float32 &amp;&amp; interpolation_mode == 1" />
+			</Implementation>
+			<Implementation language="C" fragment="resizing.h:resize_letterbox_f32"
+							call="resize_letterbox_f32(input, input_height, input_width, step_height, step_width, target_height, target_width, channels, output)">
+				<Conditional value="input.type == System.Float32 &amp;&amp; interpolation_mode == 2" />
+			</Implementation>
+			<Implementation language="C" fragment="resizing.h:resize_nearest_uint8"
+							call="resize_nearest_uint8(input, input_height, input_width, step_height, step_width, target_height, target_width, channels, output)">
+				<Conditional value="input.type == System.UInt8 &amp;&amp; interpolation_mode == 0" />
+			</Implementation>
+			<Implementation language="C" fragment="resizing.h:resize_bilinear_uint8"
+							call="resize_bilinear_uint8(input, input_height, input_width, step_height, step_width, target_height, target_width, channels, output)">
+				<Conditional value="input.type == System.UInt8 &amp;&amp; interpolation_mode == 1" />
+			</Implementation>
+			<Implementation language="C" fragment="resizing.h:resize_letterbox_uint8"
+							call="resize_letterbox_uint8(input, input_height, input_width, step_height, step_width, target_height, target_width, channels, output)">
+				<Conditional value="input.type == System.UInt8 &amp;&amp; interpolation_mode == 2" />
+			</Implementation>
+		</Implementations>
+	</Unit>
+</Imaginet>

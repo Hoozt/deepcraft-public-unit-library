@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Imaginet version="2.0.0.0">
+  <Unit name="Imaginet.Units.Filter.HighPassFilter">
+    <DisplayName>High Pass Filter</DisplayName>
+    <DisplayPath>/Signal Processing/Time Domain</DisplayPath>
+	  
+    <Description>
+		<Header>Description</Header>
+		Allow high-frequency signals to pass through while attenuating frequencies below the cutoff frequency.
+		
+		This unit implements a first-order IIR (Infinite Impulse Response) high-pass filter by subtracting a low-pass filtered version of the signal from the original. The filter uses an exponential smoothing parameter alpha derived from the cutoff frequency and sample rate. The output maintains the same shape and data type as the input.
+		
+		Supports float32 data type only.
+
+		<Header>Usage</Header>
+		Use the High Pass Filter to remove low-frequency components like DC offset or drift, isolate high-frequency features, or eliminate rumble and baseline wander from sensor signals.
+
+		<Image file="HPF.png" width="450" />
+	</Description>
+	  
+    <Parameters>
+      <InputSocket name="input" pipe="data" description="Input signal to be filtered. Can be any shape. Supports float32 data type only." />
+      <OutputSocket name="output" pipe="data" type="input.type" shape="input.shape" description="Filtered output signal containing high-frequency components. Has the same shape and data type as the input."/>
+      <Expression name="count" value="input.shape.flat" description="Total number of elements in the input tensor (computed from flattened shape)." />
+	  <Expression name="freq" value="input.rate" description="Sample rate (Hz) of the input signal, automatically extracted from the input tensor metadata." />
+	  <DoubleOption name="cutoff_freq" text="Cutoff Frequency" description="Cutoff frequency (Hz) where the filter begins to attenuate signals. Frequencies below this are suppressed, frequencies above pass through. Typical values: 0.1-100 Hz depending on application." default="10" />
+	  <Handle name="state" text="Filter State" description="Internal state buffer for the IIR filter (input.shape.flat * 4 bytes). Maintains continuity between successive calls." size="input.shape.flat*4"/>
+    </Parameters>
+
+	  <Contracts>
+		  <Assert test="cutoff_freq >= 0" error="Cutoff Frequency needs to be positive." />
+	  </Contracts>
+	  
+    <Implementations>
+      <Implementation language="C" fragment="highpassfilter.h:highpass_filter_f32" call="highpass_filter_f32(input, state, output, cutoff_freq, count, freq)">
+        <Conditional value="input.type == System.Float32" />
+      </Implementation>
+    </Implementations>
+	  
+  </Unit>
+</Imaginet>

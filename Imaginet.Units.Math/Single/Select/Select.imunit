@@ -3,10 +3,20 @@
   <Unit name="Imaginet.Units.Math.Select">
     <DisplayName>Select</DisplayName>
 	<DisplayPath>/Math/Slicing and Shaping</DisplayPath>
-    <Description>Select N elements from given axis.</Description>
+    <Description>
+			<Header>Description</Header>
+			Extract a contiguous subset of elements from a specified axis, creating a slice of the input tensor.
+			
+			This unit selects a range of elements along the chosen axis, starting at a specified index and taking a specified number of elements. The output has the same shape as the input except along the selected axis, where the size equals the count parameter.
+			
+			Currently supports float32 data type.
+
+			<Header>Usage</Header>
+			Use the Select unit when you need to extract a slice of data along a dimension, such as selecting a time window from temporal data or extracting specific channels from multi-channel input.
+		</Description>
 
 	<Parameters>
-      <InputSocket name="input" pipe="data" />
+      <InputSocket name="input" pipe="data" description="Input tensor to select elements from. Supports float32 data type only." />
            
 	  <Int32Option
 		name="axis"
@@ -14,27 +24,27 @@
 		max="9"
 		ui="textbox" 
 		text="Axis" 
-		description="Axis along which an select is performed. Enumerated from right to left." />
+		description="Axis along which to select elements. Axes are enumerated from right to left." />
 
 	  <Int32Option
 		name="index"
 		min="0"
 		ui="textbox"
 		text="Index"
-		description="The start index of items to take along the given axis." />
+		description="Starting position of the slice along the specified axis (zero-based index)." />
 		
 	   <Int32Option
 		name="count"
 		min="0" 
 		ui="textbox" 
 		text="Count" 
-		description="The number of items to take along the given axis." />
+		description="Number of consecutive elements to extract along the specified axis. The sum of index and count must not exceed the axis size." />
 	   
-	  	<Expression name="d0" value="input.shape.step(axis)" />
-		<Expression name="d1" value="input.shape.size(axis)" />
-		<Expression name="d2" value="input.shape.slot(axis)" />
+	  	<Expression name="d0" value="input.shape.step(axis)" description="Step size for iterating along the selection axis." />
+		<Expression name="d1" value="input.shape.size(axis)" description="Size of the input axis dimension being sliced." />
+		<Expression name="d2" value="input.shape.slot(axis)" description="Number of slots (iterations) in the selection operation." />
 	  
-		 <OutputSocket name="output" pipe="data" type="input.type" shape="input.shape.replace(axis, count)" />
+		 <OutputSocket name="output" pipe="data" type="input.type" shape="input.shape.replace(axis, count)" description="Output tensor containing selected elements. Has the same shape as input except the selected axis has size equal to count." />
     </Parameters>
 	
 	<Contracts>

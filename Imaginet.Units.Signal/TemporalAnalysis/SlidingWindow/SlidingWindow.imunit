@@ -9,39 +9,34 @@
 		</Tags>
 
 		<Description>
-			Fixed-width sliding window. Typically used as the last preprocessing layer.
-			The contents of the sliding window will then be classified by the AI model(s).
+			<Header>Description</Header>
+			Buffer streaming data into fixed-width overlapping windows using a circular buffer with configurable stride for real-time inference.
+			
+			This unit accumulates incoming data chunks into a sliding window of specified shape, producing output windows at intervals controlled by stride. Data is enqueued into a circular buffer and dequeued when enough samples have accumulated to advance by the stride amount. Supports optional timestamp tracking for temporal alignment.
+			
+			Window shape defines the total window size. Stride (in data points) controls overlap: smaller stride produces more overlapping windows, larger stride produces fewer windows with less overlap.
 
 			<Header>Usage</Header>
-			The window shape controls the amount of data that the window will contain.
-			Set it to X,Y where X equals the length of the window and Y equals the output of the previous preprocessing layer.
-
-			The stride controls the amount of data points to input into the window before making a new classification.
-			Set it to X*t where X equals X from above and t is the amount of time steps.
-
-			<Header>Example</Header>
-			Let's say your data has a sampling rate of 100Hz and you want to classify a new window of data every second.
-			Then you set the stride to X*100 where again X is the output of the previous layer.
-
+			Use the Sliding Window unit as the final preprocessing step before model inference to create temporal context windows from streaming sensor data or time-series signals.
 		</Description>
 
 		<Parameters>
 			<InputSocket
 			  name="input"
 			  text="Data Input"
-			  description="Data to be enqueue to buffer." />
+			  description="Streaming data chunks to enqueue into the sliding window buffer." />
 
 			<InputSocket
 			  name="time_input"
 			  timestamps="yes"
 			  text="Time Input"
-			  description="Array with time codes." />
+			  description="Optional timestamp data for temporal alignment. When provided, timestamps are tracked alongside data." />
 
 			<ShapeOption
 			  name="window_shape"
 			  text="Window shape"
 			  default="[128,3]"
-			  description="Shape of window" />
+			  description="Shape of the output window. Total size must be a multiple of input chunk size." />
 
 			<Int32Option
 			  name="stride"
@@ -49,28 +44,27 @@
 			  ui="textbox"
 			  text="Stride"
 			  default="3"
-			  description="Number of data points to stride. Must be a multiple of the output size of the previous layer. 
-        If the output of the previous layer is [4,3] the stride must be a multiple of 12."/>
+			  description="Number of data points to advance between windows. Must be a multiple of input chunk size and less than or equal to window size. Smaller values create more overlap."/>
 
 			<Expression
 				name="input_size"
 				value="input.shape.flat"
-				description="Number of elements in input (chunk)" />
+				description="Total number of elements in each input chunk." />
 
 			<Expression
 				name="stride_count"
 				value="stride / input_size"
-				description="Number of input chunks to stride" />
+				description="Number of input chunks to advance per stride." />
 
 			<Expression
 				name="window_count"
 				value="window_shape.flat / input_size"
-				description="Number of input chunks in window" />
+				description="Number of input chunks that fit in the window." />
 
 			<Expression
 				name="timestamp_count"
 				value="time_input == null ? 0 : (time_input.shape.flat)"
-				description="Number of input timestamps" />
+				description="Number of timestamps in the input, or 0 if timestamps are not provided." />
 
 			<OutputSocket
 			  name="output"
@@ -79,7 +73,7 @@
 			  rate="(input.rate * input_size) / Math.real(stride)"
 			  rateIsApprox="true"
 			  text="Output Window"
-			  description="Output data buffer to write window to." />
+			  description="Windowed output produced when buffer has accumulated enough data to advance by stride. Has the specified window shape." />
 
 			<OutputSocket
 			  name="time_output"
@@ -88,36 +82,37 @@
 			  timestamps="yes"
 			  text="Time Output"
 			  conditional="time_input != null"
-			  description="Output time buffer to write timestamps to." />
+			  description="Timestamp range for the window: [start_time, end_time]. Only produced when time_input is provided." />
 
 			<Expression
 				name="time_buffer_byte_size"
 				value="time_input == null ? 0 : (window_count * 2 * time_input.type.size)"
-				description="Size of timestamp buffer in bytes" />
+				description="Size of timestamp buffer in bytes, or 0 if timestamps are not used." />
 
 			<Expression
 				name="input_byte_size"
 				value="input.shape.flat * input.type.size"
-				description="Size of window in bytes" />
+				description="Size of each input chunk in bytes." />
 			
 			<Expression
 				name="input_count"
-				value="1" />
+				value="1"
+				description="Number of input chunks processed per enqueue operation (always 1)." />
 
 			<Expression
 				name="data_buffer_byte_size"
 				value="input_byte_size * window_count"
-				description="Number of bytes in data buffer." />
+				description="Total size of the circular data buffer in bytes." />
 			
 			<Expression
 				name="merge_time"
 				value="false"
-				description="This should always be false" />
+				description="Timestamp merging mode (always false for this unit)." />
 
 			<Handle
 			  name="handle"
 			  size="208 + data_buffer_byte_size + time_buffer_byte_size"
-			  description="Allocate memory for the object handle."/>
+			  description="Internal state handle containing circular buffer, pointers, and metadata."/>
 		</Parameters>
 
 		<Contracts>
@@ -159,7 +154,7 @@
 
 		</SoftReset>
 
-		<Body returnStatus="true">
+		<Enqueue returnStatus="true">
 			<!-- Enqueue C implementation with timestamps -->
 			<Implementation language="C" fragment="fixwin_time.h:fixwin_time_enqueue" call="fixwin_time_enqueue(handle, input, time_input, timestamp_count)">
 				<Conditional value="time_input != null" />
@@ -170,9 +165,9 @@
 				<Conditional value="time_input == null" />
 			</Implementation>
 
-		</Body>
+		</Enqueue>
 
-		<NewDomain>
+		<Dequeue>
 			<!-- Dequeue C implementation with timestamps -->
 			<Implementation language="C" fragment="fixwin_time.h:fixwin_time_dequeue" call="fixwin_time_dequeue(handle, output, window_count, stride_count, time_output, merge_time)">
 				<Conditional value="time_input != null" />
@@ -183,9 +178,9 @@
 				<Conditional value="time_input == null" />
 			</Implementation>
 
-		</NewDomain>
+		</Dequeue>
 
-		<Status>
+		<CanEnqueue>
 			<Implementation language="C" fragment="fixwin_time.h:fixwin_time_can_enqueue" call="fixwin_time_can_enqueue(handle, input_count)">
 				<Conditional value="time_input != null" />
 			</Implementation>
@@ -193,7 +188,17 @@
 			<Implementation language="C" fragment="fixwin.h:fixwin_can_enqueue" call="fixwin_can_enqueue(handle, input_count)">
 				<Conditional value="time_input == null" />
 			</Implementation>
-		</Status>
+		</CanEnqueue>
+
+		<CanDequeue>
+			<Implementation language="C" fragment="fixwin_time.h:fixwin_time_can_dequeue" call="fixwin_time_can_dequeue(handle, input_count)">
+				<Conditional value="time_input != null" />
+			</Implementation>
+
+			<Implementation language="C" fragment="fixwin.h:fixwin_can_dequeue" call="fixwin_can_dequeue(handle, input_count)">
+				<Conditional value="time_input == null" />
+			</Implementation>
+		</CanDequeue>
 
 	</Unit>
 </Imaginet>

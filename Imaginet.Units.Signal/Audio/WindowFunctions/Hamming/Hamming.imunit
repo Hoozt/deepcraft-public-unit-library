@@ -1,0 +1,125 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<Imaginet>
+	<Unit name="Imaginet.Units.Signal.Hamming">
+		<DisplayName>Hamming smoothing</DisplayName>
+		<DisplayPath>/Signal Processing/Spectral Utilities</DisplayPath>
+
+		<Description>
+			<Header>Description</Header>
+			Apply a Hamming window function to reduce spectral leakage in frequency-domain analysis.
+			
+			This unit multiplies the input signal element-wise by a bell-shaped Hamming window that tapers smoothly to near-zero at the edges. Windowing reduces discontinuities at signal boundaries, minimizing spectral leakage artifacts in FFT analysis. Two modes are available: symmetric (for filter design) and periodic (for spectral analysis).
+			
+			Supports float32, Q31, Q15, and Q7 data types. CMSIS-optimized implementations available.
+
+			<Header>Usage</Header>
+			Use the Hamming smoothing unit before FFT analysis to reduce spectral leakage, or in filter design to create smooth tapering at signal boundaries.
+
+			<Image file="images/Hamming.png" width="500" />
+
+		</Description>
+
+		<Parameters>
+			<InputSocket name="input" description="Input signal data. Supports float32, Q31, Q15, and Q7 data types." />
+			<BoolOption name="sym" default="True" text="Symmetric">
+				<Description>
+					Window mode: True (default) generates a symmetric window for filter design. False generates a periodic window for spectral analysis.
+				</Description>
+			</BoolOption>
+			
+			<Int32Option
+				name="axis"
+				min="0" 
+				max="9"
+				ui="textbox" 
+				text="Axis" 
+				description="Axis along which to apply the window, enumerated from right to left (0 is the rightmost dimension)." />
+			
+			<Expression name="d0" value="input.shape.step(axis)" description="Stride along the windowing axis." />
+			<Expression name="d1" value="input.shape.size(axis)" description="Size of the windowing axis (determines window length)." />
+			<Expression name="d2" value="input.shape.slot(axis)" description="Number of slices orthogonal to the windowing axis." />
+			
+			<BoolOption name="global_use_cmsis" text="Use CMSIS" default="false" global="true" description="Enable CMSIS-optimized implementations for ARM Cortex processors."/>
+			
+			<External
+				name="window_f32" 
+				assembly="Imaginet.Units.Signal" 
+				class="Imaginet.Units.Signal.Hamming.Hamming" 
+				call="HammingTableF32(d1, sym)" 
+				description="Precomputed float32 Hamming window coefficients." />
+			
+			<External
+				name="window_q31" 
+				assembly="Imaginet.Units.Signal" 
+				class="Imaginet.Units.Signal.Hamming.Hamming" 
+				call="HammingTableQ31(d1, sym)" 
+				description="Precomputed Q31 Hamming window coefficients." />
+				
+			<External
+				name="window_q15" 
+				assembly="Imaginet.Units.Signal" 
+				class="Imaginet.Units.Signal.Hamming.Hamming" 
+				call="HammingTableQ15(d1, sym)" 
+				description="Precomputed Q15 Hamming window coefficients." />
+			
+			<External
+				name="window_q7" 
+				assembly="Imaginet.Units.Signal" 
+				class="Imaginet.Units.Signal.Hamming.Hamming" 
+				call="HammingTableQ7(d1, sym)" 
+				description="Precomputed Q7 Hamming window coefficients." />
+			
+			<OutputSocket name="output" type="input.type" shape="input.shape" description="Windowed signal output. Has the same shape and data type as input." />
+		</Parameters>
+
+		<Implementations>
+			<Implementation language="C" fragment="hamming_mul.h:hammingmul_f32" call="hammingmul_f32(input, window_f32, d0, d1, d2, output)">
+				<Conditional value="!global_use_cmsis || d0 != 1"/>
+				<Conditional value="input.type == System.Float32" />
+			</Implementation>
+
+			<Implementation language="C" fragment="hamming_mul_cmsis.h:hammingmul_cmsis_f32" call="hammingmul_cmsis_f32(input, window_f32, output, d1, d2)">
+				<Conditional value="global_use_cmsis"/>
+				<Conditional value="input.type == System.Float32" />
+				<Conditional value="d0 == 1" />
+			</Implementation>
+		
+			<Implementation language="C" fragment="hamming_mul_cmsis.h:hammingmul_cmsis_q31" call="hammingmul_cmsis_q31(input, window_q31, output, d1, d2)">
+				<Conditional value="global_use_cmsis"/>
+				<Conditional value="input.type == System.Q31" />
+				<Conditional value="d0 == 1" />
+			</Implementation>
+			<Implementation language="C" fragment="hamming_mul_cmsis.h:hammingmul_cmsis_sparse_q31" call="hammingmul_cmsis_sparse_q31(input, window_q31, d0, d1, d2, output)">
+				<Conditional value="global_use_cmsis"/>
+				<Conditional value="input.type == System.Q31" />
+				<Conditional value="d0 != 1" />
+			</Implementation>
+			
+			<Implementation language="C" fragment="hamming_mul_cmsis.h:hammingmul_cmsis_q15" call="hammingmul_cmsis_q15(input, window_q15, output, d1, d2)">
+				<Conditional value="global_use_cmsis"/>
+				<Conditional value="input.type == System.Q15" />
+				<Conditional value="d0 == 1" />
+			</Implementation>
+			<Implementation language="C" fragment="hamming_mul_cmsis.h:hammingmul_cmsis_sparse_q15" call="hammingmul_cmsis_sparse_q15(input, window_q15, d0, d1, d2, output)">
+				<Conditional value="global_use_cmsis"/>
+				<Conditional value="input.type == System.Q15" />
+				<Conditional value="d0 != 1" />
+			</Implementation>
+	
+			<Implementation language="C" fragment="hamming_mul_cmsis.h:hammingmul_cmsis_q7" call="hammingmul_cmsis_q7(input, window_q7, output, d1, d2)">
+				<Conditional value="global_use_cmsis"/>
+				<Conditional value="input.type == System.Q7" />
+				<Conditional value="d0 == 1" />
+			</Implementation>
+			<Implementation language="C" fragment="hamming_mul_cmsis.h:hammingmul_cmsis_sparse_q7" call="hammingmul_cmsis_sparse_q7(input, window_q7, d0, d1, d2, output)">
+				<Conditional value="global_use_cmsis"/>
+				<Conditional value="input.type == System.Q7" />
+				<Conditional value="d0 != 1" />
+			</Implementation>
+		
+			<Implementation language="Python" fragment="hamming_mul.py:hamming_mul" call="hamming_mul(input, window_f32, output)" />
+		</Implementations>
+
+	</Unit>
+
+</Imaginet>

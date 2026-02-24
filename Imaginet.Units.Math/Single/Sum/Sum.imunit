@@ -5,20 +5,28 @@
 		<DisplayPath>/Math/Tensor Reductions</DisplayPath>
 
 		<Description>
-			Compute the sum over a given dimension
+			<Header>Description</Header>
+			Calculate the sum of all values along a specified axis, reducing the tensor by adding elements together.
+			
+			This unit adds all values along the chosen axis together. For each slice along the specified axis, it computes the sum of all elements. The output shape is the same as the input shape with the selected axis removed.
+			
+			Currently supports float32 data type. Requires input to have at least 2 dimensions.
+
+			<Header>Usage</Header>
+			Use the Sum unit when you need to compute cumulative totals across a dimension, such as aggregating values over time or computing total energy.
 
 			<Header>Python implementation</Header>
 			<Inline fragment="sum.py:sum" language="Python" />
 		</Description>
 
 		<Parameters>
-			<InputSocket name="input" />
-			<Int32Option name="axis" min="0" max="9" ui="textbox" text="Axis" description="Axis along which a sum is performed. Enumerated from right to left." />
-			<OutputSocket name="output" shape="input.shape.remove(axis)" type="input.type" description="Output buffer. It will have the same shape as the input but with the selected axis reduced."/>
+			<InputSocket name="input" description="Input tensor to compute sums from. Supports float32 data type only. Must have at least 2 dimensions." />
+			<Int32Option name="axis" min="0" max="9" ui="textbox" text="Axis" description="Axis along which to compute sums. Axes are enumerated from right to left." />
+			<OutputSocket name="output" shape="input.shape.remove(axis)" type="input.type" description="Output tensor containing sum values. Has the same shape as input with the selected axis removed."/>
 
-			<Expression name="d0" value="input.shape.step(axis)" />
-			<Expression name="d1" value="input.shape.size(axis)" />
-			<Expression name="d2" value="input.shape.slot(axis)" />
+			<Expression name="d0" value="input.shape.step(axis)" description="Step size for iterating along the reduction axis." />
+			<Expression name="d1" value="input.shape.size(axis)" description="Size of the axis dimension being reduced (number of elements to sum)." />
+			<Expression name="d2" value="input.shape.slot(axis)" description="Number of slots (iterations) in the reduction operation." />
 		</Parameters>
 
 		<Contracts>

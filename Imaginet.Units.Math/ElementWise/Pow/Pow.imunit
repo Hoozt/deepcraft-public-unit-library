@@ -6,16 +6,27 @@
 		<DisplayPath>/Math/Element Wise</DisplayPath>
 
 		<Description>
-			Compute power given an exponent.
+			<Header>Description</Header>
+			Raise each element to a specified power, computing x^exponent for every element in the tensor.
+			
+			This unit performs element-wise exponentiation with a fixed exponent value. The operation raises each input value to the power of the specified exponent, preserving the tensor shape and dimensions. Common use cases include squaring (exponent=2) or computing square roots (exponent=0.5).
+			
+			Currently supports float32 data type only. The exponent must be a positive number.
+
+			<Header>Usage</Header>
+			Use the Power unit when you need to apply exponential transformations, such as computing the square of values for energy calculations or applying polynomial transformations to features.
 
 			<Image file="images/pow.png" width="340" />
+
+			<Header>Python implementation</Header>
+			<Inline fragment="pow.py:pow" language="Python" />
 		</Description>
 
 		<Parameters>
-			<InputSocket name="input" />
-			<DoubleOption name="exponent" default="10" ui="textbox" text="Exponent" description="The exponent" />
-			<OutputSocket name="output" type="input.type" shape="input.shape" description="Output buffer. It will have the same shape as the input."/>
-			<Expression name="count" value="input.shape.flat" />
+			<InputSocket name="input" description="Input tensor to be raised to a power. Supports float32 data type only."/>
+			<DoubleOption name="exponent" default="10" ui="textbox" text="Exponent" description="The power to which each element will be raised. Must be a positive number. Common values: 2 (square), 0.5 (square root), 3 (cube)." />
+			<OutputSocket name="output" type="input.type" shape="input.shape" description="Output tensor containing the computed power values. Has the same shape and data type as the input."/>
+			<Expression name="count" value="input.shape.flat" description="Total number of elements in the input tensor (computed from flattened shape)."/>
 		</Parameters>
 
 		<Contracts>

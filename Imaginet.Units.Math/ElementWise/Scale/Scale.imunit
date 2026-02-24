@@ -5,14 +5,25 @@
 		<DisplayPath>/Math/Element Wise</DisplayPath>
 
 		<Description>
-			Multiply input with given constant.
+			<Header>Description</Header>
+			Multiply each element by a constant scaling factor, computing (x × scale) for every element in the tensor.
+			
+			This unit performs element-wise multiplication with a fixed scalar value, scaling all elements uniformly. The scaling factor can be any real number. The tensor shape and dimensions are preserved.
+			
+			Currently supports float32 data type only.
+
+			<Header>Usage</Header>
+			Use the Scale unit when you need to amplify or attenuate signal values, normalize data, or apply a uniform gain factor across all elements.
+
+			<Header>Python implementation</Header>
+			<Inline fragment="scale.py:scale" language="Python" />
 		</Description>
 
 		<Parameters>
-			<InputSocket name="input" text="Input"/>
-			<Expression name="count" value="input.shape.flat" description="Number of elements" />
-			<DoubleOption name="scale" text="Scale" default="1" description="The constant to multiply input with." />
-			<OutputSocket name="output" type="input.type" shape="input.shape" text="Output" description="Output buffer. It will have the same shape as the input."/>
+			<InputSocket name="input" text="Input" description="Input tensor to be scaled. Supports float32 data type only."/>
+			<Expression name="count" value="input.shape.flat" description="Total number of elements in the input tensor (computed from flattened shape)." />
+			<DoubleOption name="scale" text="Scale" default="1" description="The scaling factor to multiply each element by." />
+			<OutputSocket name="output" type="input.type" shape="input.shape" text="Output" description="Output tensor containing scaled values. Has the same shape and data type as the input."/>
 		</Parameters>
 		
 		<Contracts>

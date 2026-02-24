@@ -6,30 +6,33 @@
 		<DisplayPath>/Signal Processing/Frequency Domain</DisplayPath>
 
 		<Description>
-			Compute the one-dimensional discrete Fourier Transform for complex input.
+			<Header>Description</Header>
+			Compute the one-dimensional Fast Fourier Transform along a specified axis for complex-valued input.
+			
+			This unit transforms complex data from time/spatial domain to frequency domain using the efficient FFT algorithm. Complex numbers are represented with rightmost dimension (axis 0) storing [real, imaginary] pairs, so this dimension must have size 2. Transform axis size must be a power of 2.
+			
+			Supports float32 data type only.
 
-			This function computes the one-dimensional n-point discrete Fourier Transform (DFT) of a complex-valued array by means of an efficient algorithm called the Fast Fourier Transform (FFT).
-
-			This unit takes complex numbers as input. This means that the rightmost dimension (axis=0), should contain the imaginary part of the complex numbers. This also means that the size of this dimension must always be 2.
-			Furthermore the C implementation of FFT requires the input array size to be a power of two.
+			<Header>Usage</Header>
+			Use the Complex Discrete Fourier Transform unit for frequency analysis of complex signals, spectral estimation, or as part of signal processing pipelines requiring frequency-domain operations.
 
 			<Header>Python implementation</Header>
 			<Inline fragment="cfft.py:cfft" language="Python" />
 		</Description>
 
 		<Parameters>
-			<InputSocket name="input" />
-			<Int32Option name="axis" min="0" max="9" ui="textbox" text="Axis" description="Axis along which a fft is performed. Enumerated from right to left." />
+			<InputSocket name="input" description="Input complex-valued data with rightmost dimension (axis 0) of size 2 storing [real, imaginary] pairs. Supports float32 data type only." />
+			<Int32Option name="axis" min="0" max="9" ui="textbox" text="Axis" description="Axis along which to perform FFT, enumerated from right to left. Must be greater than 0 (axis 0 is reserved for complex dimension). Size along this axis must be a power of 2." />
 
-			<OutputSocket name="output" type="input.type" shape="input.shape"/>
+			<OutputSocket name="output" type="input.type" shape="input.shape" description="Complex FFT output in frequency domain. Has the same shape as input." />
 
-			<Expression name="d0" value="input.shape.step(axis)" />
-			<Expression name="d1" value="input.shape.size(axis)" />
-			<Expression name="d2" value="input.shape.slot(axis)" />
+			<Expression name="d0" value="input.shape.step(axis)" description="Stride along the transform axis." />
+			<Expression name="d1" value="input.shape.size(axis)" description="Size of the transform axis (must be power of 2)." />
+			<Expression name="d2" value="input.shape.slot(axis)" description="Number of slices orthogonal to the transform axis." />
 
-			<Expression name="temp_a" value="System.Tensor(input.type, 2 * d1)" description="Temp input/output buffer." />
-			<Expression name="temp_ip" value="System.Tensor(System.Int32, Math.int(Math.sqrt(d1) + 2), true)" description="Work area for bit reversal" />
-			<Expression name="temp_w" value="System.Tensor(input.type, d1 / 2, true)" description="cos/sin lookup table" /> TODO: Move to flash?
+			<Expression name="temp_a" value="System.Tensor(input.type, 2 * d1)" description="Temporary input/output buffer for FFT computation." />
+			<Expression name="temp_ip" value="System.Tensor(System.Int32, Math.int(Math.sqrt(d1) + 2), true)" description="Work area for bit reversal operations." />
+			<Expression name="temp_w" value="System.Tensor(input.type, d1 / 2, true)" description="Cosine/sine lookup table for FFT twiddle factors." /> TODO: Move to flash?
 		</Parameters>
 
 		<Contracts>

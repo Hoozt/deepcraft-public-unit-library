@@ -6,9 +6,15 @@
 		<DisplayPath>/Signal Processing/Frequency Domain</DisplayPath>
 
 		<Description>
-			Compute the one-dimensional discrete Fourier Transform for real input.
+			<Header>Description</Header>
+			Compute the one-dimensional Fast Fourier Transform along a specified axis for real-valued input.
+			
+			This unit transforms real data from time/spatial domain to complex frequency domain using the efficient FFT algorithm. Since input is real-valued, output exploits Hermitian symmetry by storing only the first N/2+1 frequency bins. Output format is complex with rightmost dimension (axis 0) of size 2 storing [real, imaginary] pairs. Transform axis size must be a power of 2.
+			
+			Supports float32, Q31, and Q15 data types. CMSIS-optimized implementations available for FFT sizes 32-4096.
 
-			This function computes the one-dimensional n-point discrete Fourier Transform (DFT) of a real-valued array by means of an efficient algorithm called the Fast Fourier Transform (FFT).
+			<Header>Usage</Header>
+			Use the Real Discrete Fourier Transform unit for frequency analysis of real-valued signals, spectral estimation, or audio/sensor signal processing pipelines.
 
 			<Image file="FFT.png" width="340" />
 
@@ -17,25 +23,25 @@
 		</Description>
 	
 		<Parameters>
-			<InputSocket name="input" />
-			<Int32Option name="axis" min="0" max="9" ui="textbox" text="Axis" description="Axis along which a fft is performed. Enumerated from right to left." />
+			<InputSocket name="input" description="Input real-valued data. Supports float32, Q31, and Q15 data types." />
+			<Int32Option name="axis" min="0" max="9" ui="textbox" text="Axis" description="Axis along which to perform FFT, enumerated from right to left. Size along this axis must be a power of 2." />
 
-			<Expression name="n" value="Math.floor(input.shape.size(axis) / 2.0) + 1" />
+			<Expression name="n" value="Math.floor(input.shape.size(axis) / 2.0) + 1" description="Number of output frequency bins (N/2+1) exploiting Hermitian symmetry of real FFT." />
 			
-			<BoolOption name="global_use_cmsis" text="Use CMSIS" default="false" global="true"/>
+			<BoolOption name="global_use_cmsis" text="Use CMSIS" default="false" global="true" description="Enable CMSIS-optimized implementations for ARM Cortex processors. Supports FFT sizes 32-4096."/>
 			
-			<Expression name="d0" value="input.shape.step(axis)" />
-			<Expression name="d1" value="input.shape.size(axis)" />
-			<Expression name="d2" value="input.shape.slot(axis)" />
+			<Expression name="d0" value="input.shape.step(axis)" description="Stride along the transform axis." />
+			<Expression name="d1" value="input.shape.size(axis)" description="Size of the transform axis (must be power of 2, minimum 32 for CMSIS)." />
+			<Expression name="d2" value="input.shape.slot(axis)" description="Number of slices orthogonal to the transform axis." />
 
-			<OutputSocket name="output" type="input.type" shape="input.shape.replace(axis, n).insert(0,2)" shift="input.shift + d1.log(2).floor" />
+			<OutputSocket name="output" type="input.type" shape="input.shape.replace(axis, n).insert(0,2)" shift="input.shift + d1.log(2).floor" description="Complex FFT output with rightmost dimension of size 2 storing [real, imaginary] pairs. Contains N/2+1 frequency bins." />
 			
-			<Handle name="cmsis" size="48"/>
+			<Handle name="cmsis" size="48" description="Internal CMSIS instance handle for FFT state."/>
 
-			<Expression name="temp_ip" value="System.Tensor(System.Int32, Math.int(Math.sqrt(d1) + 2), true)" description="Work area for bit reversal" />
-			<Expression name="temp_w" value="System.Tensor(input.type, Math.int(d1/2)+2, true)" description="cos/sin lookup table" />
-			<Expression name="temp_a" value="System.Tensor(input.type, d1 * 2 + 2)" description="Temp buffer" />
-			<Expression name="temp_q" value="System.Tensor(input.type, d1 * 2 + 2)" description="Temp buffer for Q7, Q15, Q31" />
+			<Expression name="temp_ip" value="System.Tensor(System.Int32, Math.int(Math.sqrt(d1) + 2), true)" description="Work area for bit reversal operations (non-CMSIS implementation)." />
+			<Expression name="temp_w" value="System.Tensor(input.type, Math.int(d1/2)+2, true)" description="Cosine/sine lookup table (non-CMSIS implementation)." />
+			<Expression name="temp_a" value="System.Tensor(input.type, d1 * 2 + 2)" description="Temporary buffer for FFT computation." />
+			<Expression name="temp_q" value="System.Tensor(input.type, d1 * 2 + 2)" description="Additional temporary buffer for fixed-point formats (Q15, Q31)." />
 		</Parameters>
 
 		<Contracts>

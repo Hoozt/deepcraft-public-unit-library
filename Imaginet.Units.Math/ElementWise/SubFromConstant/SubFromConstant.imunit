@@ -5,14 +5,25 @@
 		<DisplayPath>/Math/Element Wise</DisplayPath>
 
 		<Description>
-			Computes (A-x) given a constant A.
+			<Header>Description</Header>
+			Subtract each element from a constant value, computing (A - x) for every element in the tensor.
+			
+			This unit performs element-wise reverse subtraction, where a constant value A has each input element subtracted from it. Note that this is different from subtracting a constant from the input; the order matters in subtraction. The constant can be positive or negative. The tensor shape and dimensions are preserved.
+			
+			Currently supports float32 data type only.
+
+			<Header>Usage</Header>
+			Use the Subtract From Constant unit when you need to invert values around a reference point or compute complementary values.
+
+			<Header>Python implementation</Header>
+			<Inline fragment="subir.py:subir" language="Python" />
 		</Description>
 
 		<Parameters>
-			<InputSocket name="input" description="Input" />
-			<Expression name="count" value="input.shape.flat" description="Number of elements" />
-			<DoubleOption name="A" text="Constant" description="The constant A" />
-			<OutputSocket name="output" type="input.type" shape="input.shape" text="Output" description="Output buffer. It will have the same shape as the input."/>
+			<InputSocket name="input" description="Input tensor to be subtracted from the constant. Supports float32 data type only." />
+			<Expression name="count" value="input.shape.flat" description="Total number of elements in the input tensor (computed from flattened shape)." />
+			<DoubleOption name="A" text="Constant" description="The constant value from which each input element will be subtracted. Can be positive or negative." />
+			<OutputSocket name="output" type="input.type" shape="input.shape" text="Output" description="Output tensor containing the result of (A - x) for each element. Has the same shape and data type as the input."/>
 		</Parameters>
 
 		<Contracts>

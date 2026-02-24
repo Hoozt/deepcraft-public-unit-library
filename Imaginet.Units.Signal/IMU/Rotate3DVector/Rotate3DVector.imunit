@@ -1,0 +1,58 @@
+﻿<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<Imaginet version="2.0.0.0">
+    <Unit name="Imaginet.Units.Common.Rotate3DVector">
+    <DisplayName>Rotate 3D Vector</DisplayName>
+	
+    <DisplayPath>/Math/Element Wise</DisplayPath>
+	
+    <Description>
+		<Header>Description</Header>
+		Rotate a 3D vector by a specified angle around one of the three principal axes (x, y, or z).
+		
+		This unit performs a 3D rotation transformation by applying a rotation matrix to the input vector. The rotation is defined by an angle in degrees and an axis index. The unit computes the appropriate 3D rotation matrix during initialization and applies it to transform the input vector coordinates.
+		
+		The rotation follows the right-hand rule convention:
+		- Index 0 (x-axis): Rotation around the x-axis (affects y and z coordinates)
+		- Index 1 (y-axis): Rotation around the y-axis (affects x and z coordinates)
+		- Index 2 (z-axis): Rotation around the z-axis (affects x and y coordinates)
+		
+		Input must be a 3D vector (length 3). The output maintains the same shape and data type as the input. Positive rotation angles follow counter-clockwise rotation when looking along the positive axis direction toward the origin.
+		
+		This unit is applicable to any 3D vector data, including sensor readings (accelerometer, magnetometer, gyroscope), spatial coordinates, or directional vectors.
+		
+		Supports float32 data type only.
+
+		<Header>Usage</Header>
+		Use the Rotate 3D Vector unit to correct sensor orientation, align coordinate frames, compensate for device mounting angles, or perform geometric transformations in 3D space.
+	</Description>
+	
+    <Parameters>
+        <InputSocket name="input" pipe="data" description="Input 3D vector to be rotated. Must have exactly 3 elements. Supports float32 data type only." />
+	    <Int32Option name="rotation_deg" text="Rotation (Degrees)" description="Rotation angle in degrees. Positive values rotate counter-clockwise when viewed along the positive axis direction. The angle is automatically normalized to [0, 360) degrees." default="0"/>
+	    <Int32Option name="index" min="0" max="2" ui="textbox" text="Index" description="Axis of rotation: 0 for x-axis, 1 for y-axis, 2 for z-axis."/>
+		<Handle name="rotation_matrix" size="36" description="Internal storage for the 3x3 rotation matrix (9 float32 values = 36 bytes)."/>
+        <OutputSocket name="output" pipe="data" type="input.type" shape="input.shape" description="Rotated 3D vector. Has the same shape and data type as the input." />
+        <Expression name="count" value="input.shape.flat" description="Total number of elements in the input vector (always 3 for valid input)." />
+    </Parameters>
+	
+    <Contracts>
+        <Assert test="input.shape.count &lt;= 1" error="Rotate 3D Vector requires a vector input." />
+        <Assert test="index &lt; input.shape.size(0)" error="Index must be less than the vector length." />
+		<Assert test="index &gt; -1 " error="Index must not be negative." />
+	    <Assert test="input.shape.size(0) == 3" error="Rotate 3D Vector only supports vectors of length 3." />
+    </Contracts>
+	
+	<Init returnStatus="true">
+    	<Implementation language="C" fragment="rotate3DVector.h:rotate_init_f32" call="rotate_init_f32(rotation_matrix, rotation_deg, index)">
+    		<Conditional value="input.type == System.Float32" />
+    	</Implementation>
+	</Init>
+	
+    <Implementations>
+        <Implementation language="C" fragment="rotate3DVector.h:rotate_f32" call="rotate_f32(input, rotation_matrix, output)">
+            <Conditional value="input.type == System.Float32" />
+        </Implementation>
+    </Implementations>
+	
+    </Unit>
+</Imaginet>

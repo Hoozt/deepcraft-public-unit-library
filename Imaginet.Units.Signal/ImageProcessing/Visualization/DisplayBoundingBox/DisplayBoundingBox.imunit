@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Imaginet version="2.0.0.0">
+  <Unit name="Imaginet.Units.Signal.DisplayBoundingBox">
+    <DisplayName>Display Bounding Box</DisplayName>
+    <DisplayPath>/Image Processing/Image Manipulation</DisplayPath>
+    <Description>
+		<Header>Description</Header>
+		Overlay bounding boxes on an image based on object detection results for visualization and debugging.
+		
+		This unit draws colored rectangular boxes on the input image corresponding to detected objects. Each box is assigned a unique color based on its class ID. Optional text labels display class names and confidence scores. The unit modifies the image in place, drawing boxes with configurable thickness and font size.
+		
+		Input requires an image tensor [H,W] or [H,W,C] and a detection tensor [max_detections, confidence_count] containing bounding box coordinates (x, y, width, height) and class scores. Output is the image with overlaid visualizations.
+		
+		Supports float32 data type only.
+
+		<Header>Usage</Header>
+		Use the Display Bounding Box unit to visualize object detection results, debug detection pipelines, or create annotated output for analysis and demonstration.
+	</Description>
+
+    <Parameters>
+      <InputSocket name="image" pipe="data" description="Input image tensor with shape [height, width] for grayscale or [height, width, channels] for color images. This image will be modified with overlaid bounding boxes. Supports float32 data type only." />
+      <InputSocket name="detections" pipe="data" description="Detection tensor with shape [max_detections, confidence_count] containing bounding box coordinates (x, y, width, height) and class scores. Typically output from BoundingBoxFilter. Supports float32 data type only." />
+      
+      <Expression name="detection_axis" value="0" description="Axis index for detections (always 0)." />
+      <Expression name="confidence_axis" value="1" description="Axis index for confidence values (always 1)." />
+      
+      <!-- Image dimensions -->
+      <Expression name="channels" value="image.shape.count == 2 ? 1 : image.shape.size(-3)" description="Number of channels in the input image (1 for grayscale, 3 for RGB)." />
+      <Expression name="index_offset" value="channels == 3 ? 1 : 0" description="Internal offset for dimension indexing based on channel count." />
+      <Expression name="image_height" value="image.shape.size(1+index_offset)" description="Height of the input image extracted from tensor shape." />
+      <Expression name="image_width" value="image.shape.size(0+index_offset)" description="Width of the input image extracted from tensor shape." />
+	  <Expression name="confidence_axis_size" value="detections.shape.size(confidence_axis)" description="Total size of the confidence axis (bounding box + class scores)." />
+
+
+		<!-- Detection tensor dimensions -->
+      <Expression name="max_detections" value="detections.shape.size(detection_axis)" description="Maximum number of detections that can be displayed, extracted from detection tensor shape." />
+      <Expression name="confidence_count" value="detections.shape.size(confidence_axis)" description="Number of values per detection (4 for bounding box + class scores)." />
+      
+      <!-- Rendering options -->
+      <Int32Option name="box_thickness" text="Box Thickness" description="Thickness of bounding box border lines in pixels (1-10). Higher values create thicker, more visible boxes." default="2" min="1" max="10" />
+      
+      <Int32Option name="font_size" text="Font Size" description="Font size for rendering class names and confidence scores. Larger sizes are more visible but require more space." default="2" min="0" max="3" ui="textbox">
+        <OneOf>
+          <Item text="Tiny (3x5)">0</Item>
+          <Item text="Small (5x7)">1</Item>
+          <Item text="Large (8x12)">2</Item>
+          <Item text="Extra Large (12x16)">3</Item>
+        </OneOf>
+      </Int32Option>
+            
+      <BoolOption name="show_confidence" text="Show Confidence" description="If enabled, displays confidence scores as percentages next to class names. Useful for evaluating detection quality." default="true" />
+      
+      <BoolOption name="show_class_name" text="Show Class Name" description="If enabled, displays class names above each bounding box. Disable to show only boxes without labels." default="true" />
+	  <Expression name="class_offset" value="4" description="Starting index of class scores in the detection data (after x, y, width, height)." />
+	  <Expression name="num_classes" value="confidence_axis_size - class_offset" description="Number of object classes in the detection data." />
+
+      <Expression name="class_names" value="detections.shape.getLabels(confidence_axis, class_offset, num_classes)" description="Class label names extracted from detection tensor metadata for display." />   
+
+      <OutputSocket name="output" pipe="data" type="image.type" shape="image.shape" description="Output image with bounding boxes, class names, and confidence scores overlaid. Has the same shape and data type as the input image." />
+    </Parameters>
+
+    <Contracts>
+      <Assert test="image.shape.count >= 2" error="Image input must be at least 2D (HxW or HxWxC)." />
+      <Assert test="detections.shape.count == 2" error="Detections input must be 2D [confidence_count, max_detections]." />
+      <Assert test="confidence_count >= 4" error="Detection data must have at least 4 elements (x, y, w, h) per detection." />
+      <Assert test="box_thickness >= 1" error="Box thickness must be at least 1 pixel." />
+    </Contracts>
+
+    <Implementations>
+      <Implementation language="C" fragment="display_bounding_box.h:display_bounding_box_f32" 
+                      call="display_bounding_box_f32(image, detections, output, image_height, image_width, channels, max_detections, confidence_count, box_thickness, font_size, show_class_name, show_confidence, class_names)">
+        <Conditional value="image.type == System.Float32 &amp;&amp; detections.type == System.Float32" />
+      </Implementation>
+    </Implementations>
+  </Unit>
+</Imaginet> 

@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Imaginet version="2.0.0.0">
+  <Unit name="Imaginet.Units.Signal.DisplayObjectTracker">
+    <DisplayName>Display Object Tracker</DisplayName>
+    <DisplayPath>/Image Processing/Image Manipulation</DisplayPath>
+    <Description>
+		<Header>Description</Header>
+		Visualize tracked objects on an image with track IDs, class names, confidence scores, and motion trails.
+		
+		This unit overlays tracked object visualizations on an image, including track IDs, class names, confidence scores, and colored motion trails showing recent object paths. Each track is assigned a unique color for easy identification. Trails are drawn by connecting historical center positions over the last 12 frames.
+		
+		Input requires an image tensor [H,W] or [H,W,C] and a tracked detection tensor [max_detections, confidence_count] from ObjectTracker containing bounding box coordinates, class scores, track_id, and tracking_confidence. Output is the image with overlaid text labels and trails.
+		
+		Supports float32 data type only.
+
+		<Header>Usage</Header>
+		Use the Display Object Tracker unit to visualize object tracking results, debug tracking algorithms, or create annotated video output showing object trajectories.
+	</Description>
+
+    <Parameters>
+      <InputSocket name="image" pipe="data" description="Input image tensor with shape [height, width] for grayscale or [height, width, channels] for color images. This image will be modified with overlaid tracking visualizations. Supports float32 data type only." />
+      <InputSocket name="tracked_detections" pipe="data" description="Tracked detection tensor with shape [max_detections, confidence_count] from ObjectTracker containing bounding box coordinates, class scores, track_id, and tracking_confidence. Supports float32 data type only." />
+      
+      <Expression name="detection_axis" value="0" description="Axis index for detections (always 0)." />
+      <Expression name="confidence_axis" value="1" description="Axis index for confidence values (always 1)." />
+      
+      <!-- Image dimensions -->
+      <Expression name="channels" value="image.shape.count == 2 ? 1 : image.shape.size(-3)" description="Number of channels in the input image (1 for grayscale, 3 for RGB)." />
+      <Expression name="index_offset" value="channels == 3 ? 1 : 0" description="Internal offset for dimension indexing based on channel count." />
+      <Expression name="image_height" value="image.shape.size(1+index_offset)" description="Height of the input image extracted from tensor shape." />
+      <Expression name="image_width" value="image.shape.size(0+index_offset)" description="Width of the input image extracted from tensor shape." />
+      
+      <!-- Tracked detection tensor dimensions -->
+      <Expression name="max_detections" value="tracked_detections.shape.size(detection_axis)" description="Maximum number of tracked objects that can be displayed, extracted from detection tensor shape." />
+      <Expression name="confidence_count" value="tracked_detections.shape.size(confidence_axis)" description="Number of values per detection (bounding box + class scores + track_id + tracking_confidence)." />
+	  <Expression name="class_offset" value="4" description="Starting index of class scores in the detection data (after x, y, width, height)." />
+	  <Expression name="num_classes" value="confidence_count - class_offset - 2" description="Number of object classes (excluding track_id and tracking_confidence at the end)." />
+	  <Expression name="class_names" value="tracked_detections.shape.getLabels(confidence_axis, class_offset, num_classes)" description="Class label names extracted from detection tensor metadata for display." />
+
+		<!-- Rendering options -->
+		<!--<StringOption name="class_names" text="Class Names" description="Comma-separated list of class names (e.g., 'Person,Car,Dog,Cat'). If empty, uses generic names like Class0, Class1, etc." default="" />-->
+
+      <Int32Option name="font_size" text="Font Size" description="Font size for rendering labels. Larger sizes are more visible but require more space." default="2" min="0" max="3" ui="textbox">
+        <OneOf>
+          <Item text="Tiny (3x5)">0</Item>
+          <Item text="Small (5x7)">1</Item>
+          <Item text="Large (8x12)">2</Item>
+          <Item text="Extra Large (12x16)">3</Item>
+        </OneOf>
+      </Int32Option>
+
+      <Int32Option name="trail_thickness" text="Trail Thickness" description="Thickness of motion trail lines in pixels (1-10). Thicker trails are more visible but can obscure image details. Trails show last 12 object positions." default="2" min="1" max="10" />
+      
+      <BoolOption name="show_track_id" text="Show Track ID" description="If enabled, displays persistent track IDs in labels. Useful for identifying specific objects across frames." default="true" />
+      
+      <BoolOption name="show_class_name" text="Show Class Name" description="If enabled, displays object class names in labels. Disable to show only track IDs and confidences." default="true" />
+      
+      <BoolOption name="show_confidence" text="Show Confidence" description="If enabled, displays detection confidence scores as percentages. Useful for evaluating detection quality." default="true" />
+      
+      <BoolOption name="show_tracking_confidence" text="Show Tracking Confidence" description="If enabled, displays tracking confidence scores (IoU-based quality measure). Helps assess tracking reliability." default="false" />
+      
+      <BoolOption name="show_tracking_trail" text="Show Tracking Trail" description="If enabled, draws motion trails connecting historical center positions over the last 12 frames. Visualizes object trajectories." default="true" />
+      
+      <OutputSocket name="output" pipe="data" type="image.type" shape="image.shape" description="Output image with tracked objects overlaid, including text labels (track IDs, class names, confidence scores) and motion trails. Has the same shape and data type as the input image." />
+    </Parameters>
+
+    <Contracts>
+      <Assert test="image.shape.count >= 2" error="Image input must be at least 2D (HxW or HxWxC)." />
+      <Assert test="tracked_detections.shape.count == 2" error="Tracked detections input must be 2D [confidence_count, max_detections]." />
+      <Assert test="confidence_count >= 6" error="Tracked detection data must have at least 6 elements (x, y, w, h, track_id, tracking_confidence)." />
+    </Contracts>
+
+    <Implementations>
+      <Implementation language="C" fragment="display_object_tracker.h:display_object_tracker_f32" 
+                      call="display_object_tracker_f32(image, tracked_detections, output, image_height, image_width, channels, max_detections, confidence_count, font_size, show_track_id, show_class_name, show_confidence, show_tracking_confidence, show_tracking_trail, trail_thickness, class_names)">
+        <Conditional value="image.type == System.Float32 &amp;&amp; tracked_detections.type == System.Float32" />
+      </Implementation>
+    </Implementations>
+  </Unit>
+</Imaginet> 

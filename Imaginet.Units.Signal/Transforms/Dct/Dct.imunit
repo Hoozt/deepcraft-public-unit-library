@@ -6,11 +6,17 @@
 		<DisplayPath>/Signal Processing/Frequency Domain</DisplayPath>
 
 		<Description>
-			Compute the one-dimensional discrete Cosine Transform for real input.
+			<Header>Description</Header>
+			Compute the one-dimensional Discrete Cosine Transform along a specified axis.
+			
+			This unit transforms real-valued data from time/spatial domain to frequency domain using cosine basis functions. The DCT is commonly used for signal compression and feature extraction. Implementation is automatically selected: FFT-based O(n log n) for power-of-2 sizes, or naive O(n²) otherwise.
+			
+			Output size can be truncated to keep only the first N coefficients.
+			
+			Supports float32 data type only.
 
-			This function computes the one-dimensional n-point discrete Cosine Transform (DCT) of a real-valued array.
-
-			<Text italic="True">Note: If size of output axis is a power of two an FFT implementation is used, else a naive O(n^2) implementation.</Text>
+			<Header>Usage</Header>
+			Use the Discrete Cosine Transform unit for audio feature extraction, signal compression, or frequency-domain analysis of real-valued signals.
 
 			<Image file="type2.png" width="300" />
 
@@ -20,25 +26,25 @@
 		</Description>
 
 		<Parameters>
-			<InputSocket name="input" />
-			<Int32Option name="axis" min="0" max="9" ui="textbox" text="Axis" description="Axis along which a DCT is performed. Enumerated from right to left." />
-			<Int32Option name="output_count" min="0" ui="textbox" text="Output axis size" description="Number of data points kept in output axis. Must be equal or less than input size of axis, or if zero size of axis is used." />
+			<InputSocket name="input" description="Input real-valued data. Supports float32 data type only." />
+			<Int32Option name="axis" min="0" max="9" ui="textbox" text="Axis" description="Axis along which to perform DCT, enumerated from right to left (0 is the rightmost dimension)." />
+			<Int32Option name="output_count" min="0" ui="textbox" text="Output axis size" description="Number of DCT coefficients to keep. If 0, keeps all coefficients (same size as input axis). Otherwise truncates to first N coefficients." />
 
-			<Expression name="output_size" value="output_count &lt;= 0 ? input.shape.size(axis) : output_count" />
+			<Expression name="output_size" value="output_count &lt;= 0 ? input.shape.size(axis) : output_count" description="Computed output axis size (input size if output_count is 0, otherwise output_count)." />
 
-			<OutputSocket name="output" type="input.type" shape="input.shape.replace(axis, output_size)" />
+			<OutputSocket name="output" type="input.type" shape="input.shape.replace(axis, output_size)" description="DCT coefficients in frequency domain. Has the same shape as input except along the transform axis." />
 
-			<Expression name="d0" value="input.shape.step(axis)" />
-			<Expression name="d1" value="input.shape.size(axis)" />
-			<Expression name="d2" value="input.shape.slot(axis)" />
+			<Expression name="d0" value="input.shape.step(axis)" description="Stride along the transform axis." />
+			<Expression name="d1" value="input.shape.size(axis)" description="Size of the transform axis." />
+			<Expression name="d2" value="input.shape.slot(axis)" description="Number of slices orthogonal to the transform axis." />
 
 			<!-- some bit magic to check is d1 is a power of two -->
-			<Expression name="is_pow2" value="(d1 &amp; d1 - 1)==0" />
+			<Expression name="is_pow2" value="(d1 &amp; d1 - 1)==0" description="True if transform size is power of 2 (enables FFT-based implementation)." />
 
-			<Expression name="temp_ip" value="System.Tensor(System.Int32, Math.int(Math.sqrt(d1) + 2), true)" description="Work area for bit reversal" />
-			<Expression name="temp_w" value="System.Tensor(input.type, Math.int(d1*5/4)+1, true)" description="cos/sin lookup table" />
+			<Expression name="temp_ip" value="System.Tensor(System.Int32, Math.int(Math.sqrt(d1) + 2), true)" description="Work area for FFT bit reversal (FFT implementation only)." />
+			<Expression name="temp_w" value="System.Tensor(input.type, Math.int(d1*5/4)+1, true)" description="Cosine/sine lookup table for FFT (FFT implementation only)." />
 			<!-- TODO: Move to flash? -->
-			<Expression name="temp_a" value="System.Tensor(input.type, d1)" description="Temp buffer" />
+			<Expression name="temp_a" value="System.Tensor(input.type, d1)" description="Temporary buffer for DCT computation." />
 			<!-- TODO: Can be removed with refactoring -->
 		</Parameters>
 

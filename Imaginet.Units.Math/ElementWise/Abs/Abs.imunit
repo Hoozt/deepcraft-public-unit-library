@@ -5,17 +5,25 @@
 		<DisplayPath>/Math/Element Wise</DisplayPath>
 
 		<Description>
-			Calculate the absolute value element-wise.
+			<Header>Description</Header>
+			Calculate the absolute value element-wise, converting all elements to their non-negative magnitude.
+			
+			This unit computes |x| for each element x in the input tensor, preserving the shape and dimensions. The operation is performed element-wise, meaning each value is processed independently. Positive values remain unchanged, negative values are converted to their positive equivalents, and zero remains zero.
+			
+			The unit supports multiple data types (float32, int8, int16, int32) and can optionally use CMSIS (Cortex Microcontroller Software Interface Standard) optimized implementations for improved performance on ARM-based embedded systems.
+
+			<Header>Usage</Header>
+			Use the Absolute Value unit when you need to work with magnitudes regardless of sign.
 
 			<Header>Python implementation</Header>
 			<Inline fragment="abs.py:abs" language="Python" />
 		</Description>
 
 		<Parameters>
-			<InputSocket name="input" text="Input"/>
-			<Expression name="count" value="input.shape.flat" description="Number of elements" />		
-			<OutputSocket name="output" type="input.type" shape="input.shape" text="Output" description="Output buffer. It will have the same shape as the input."/>
-			<BoolOption name="global_use_cmsis" text="Use CMSIS" default="false" global="true"/>
+			<InputSocket name="input" text="Input" description="Input tensor containing values to be converted to absolute values. Supports float32, int8, int16, and int32 data types."/>
+			<Expression name="count" value="input.shape.flat" description="Total number of elements in the input tensor (computed from flattened shape)." />		
+			<OutputSocket name="output" type="input.type" shape="input.shape" text="Output" description="Output tensor containing absolute values. Has the same shape and data type as the input."/>
+			<BoolOption name="global_use_cmsis" text="Use CMSIS" default="false" global="true" description="Enable CMSIS-optimized implementations for ARM Cortex processors. Improves performance on embedded systems."/>
 		</Parameters>
 
 		<Implementations>

@@ -5,32 +5,37 @@
 		<DisplayPath>/Math/Element Wise</DisplayPath>
 
 		<Description>
-			Given an interval, values outside the interval are clipped to the interval edges.
+			<Header>Description</Header>
+			Constrain tensor values to lie within a specified range by clipping values outside the interval to the interval boundaries.
 			
-			Returns min &lt;= input &lt;= max
+			This unit performs element-wise clipping, ensuring that all output values satisfy min ≤ output ≤ max. Values below the minimum are set to the minimum, values above the maximum are set to the maximum, and values within the range remain unchanged. The tensor shape and dimensions are preserved.
 			
-			
+			The unit supports multiple data types (float32, int8, int16, int32) and fixed-point formats (Q7, Q15, Q31) with optional CMSIS optimized implementations. For integer and fixed-point types, the min and max values are automatically clamped to the valid range of the data type.
+
+			<Header>Usage</Header>
+			Use the Clip unit when you need to limit values to a valid range, such as preventing overflow or enforcing constraints on model outputs.
+
 			<Header>Python implementation</Header>
 			<Inline fragment="clip.py:clip" language="Python" />
 		</Description>
 
 		<Parameters>
-			<InputSocket name="input" />
-			<DoubleOption name="min" default="-3.40282347E+38" />
-			<DoubleOption name="max" default="3.40282347E+38" />
+			<InputSocket name="input" description="Input tensor to be clipped. Supports float32, int8, int16, int32, and fixed-point types (Q7, Q15, Q31)."/>
+			<DoubleOption name="min" default="-3.40282347E+38" description="Minimum value of the clipping range. Values below this threshold will be set to this value."/>
+			<DoubleOption name="max" default="3.40282347E+38" description="Maximum value of the clipping range. Values above this threshold will be set to this value."/>
 			
-			<Expression name="min_i8" value="min.max(-128).round" />
-			<Expression name="max_i8" value="max.min(127).round" />
-			<Expression name="min_i16" value="min.max(-32768).round" />
-			<Expression name="max_i16" value="max.min(32767).round" />
-			<Expression name="min_i32" value="min.max(-2147483647).round" />
-			<Expression name="max_i32" value="max.min(2147483647).round" />
+			<Expression name="min_i8" value="min.max(-128).round" description="Minimum value clamped to int8 range [-128, 127] and rounded."/>
+			<Expression name="max_i8" value="max.min(127).round" description="Maximum value clamped to int8 range [-128, 127] and rounded."/>
+			<Expression name="min_i16" value="min.max(-32768).round" description="Minimum value clamped to int16 range [-32768, 32767] and rounded."/>
+			<Expression name="max_i16" value="max.min(32767).round" description="Maximum value clamped to int16 range [-32768, 32767] and rounded."/>
+			<Expression name="min_i32" value="min.max(-2147483647).round" description="Minimum value clamped to int32 range and rounded."/>
+			<Expression name="max_i32" value="max.min(2147483647).round" description="Maximum value clamped to int32 range and rounded."/>
 
-			<BoolOption name="global_use_cmsis" text="Use CMSIS" default="false" global="true"/>
-			<OutputSocket name="output" type="input.type" shape="input.shape" description="Output buffer. It will have the same shape as the input."/>
-			<Expression name="count" value="input.shape.flat" />
-			<Expression name="min_quantized" value="min.quantize(input.type, input.shift)" />
-			<Expression name="max_quantized" value="max.quantize(input.type, input.shift)" />
+			<BoolOption name="global_use_cmsis" text="Use CMSIS" default="false" global="true" description="Enable CMSIS-optimized implementations for ARM Cortex processors. Improves performance on embedded systems."/>
+			<OutputSocket name="output" type="input.type" shape="input.shape" description="Output tensor containing clipped values. Has the same shape and data type as the input."/>
+			<Expression name="count" value="input.shape.flat" description="Total number of elements in the input tensor (computed from flattened shape)."/>
+			<Expression name="min_quantized" value="min.quantize(input.type, input.shift)" description="Minimum value quantized to match the input type and shift for fixed-point operations."/>
+			<Expression name="max_quantized" value="max.quantize(input.type, input.shift)" description="Maximum value quantized to match the input type and shift for fixed-point operations."/>
 		</Parameters>
 
 		<Implementations>

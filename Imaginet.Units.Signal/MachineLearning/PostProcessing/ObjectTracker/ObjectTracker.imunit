@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<Imaginet version="2.0.0.0">
+  <Unit name="Imaginet.Units.Signal.ObjectTracker">
+    <DisplayName>Object Tracker</DisplayName>
+    <DisplayPath>/Image Processing/Object Detection</DisplayPath>
+    <Description>
+		<Header>Description</Header>
+		Track objects across video frames by maintaining persistent identities using IoU (Intersection over Union) matching.
+		
+		This unit associates detections from consecutive frames based on bounding box overlap, assigning each tracked object a unique ID that persists over time. Tracks are confirmed after min_hits detections and removed after max_age frames without detection. The output includes the original detection data plus track_id and tracking_confidence values.
+		
+		Input shape must be [max_detections, confidence_count] containing bounding box coordinates (x, y, width, height) and class scores. Output shape is [max_detections, confidence_count + 2] with added tracking information.
+		
+		Supports float32 and int8 data types.
+
+		<Header>Usage</Header>
+		Use the Object Tracker as a post-processing step after object detection to maintain consistent identities across frames in video analysis, counting applications, or motion tracking systems.
+	</Description>
+      
+    <Parameters>
+      <InputSocket name="detections" pipe="data" description="Input detection tensor with shape [max_detections, confidence_count] containing bounding box coordinates (x, y, width, height) and class scores. Typically output from BoundingBoxFilter. Supports float32 and int8 data types." />
+      
+      <Expression name="detection_axis" value="0" description="Axis index for detections (always 0)." />
+      <Expression name="confidence_axis" value="1" description="Axis index for confidence values (always 1)." />
+      
+      <!-- Detection tensor dimensions -->
+      <Expression name="max_detections" value="detections.shape.size(detection_axis)" description="Maximum number of detections per frame extracted from input shape." />
+      <Expression name="confidence_count" value="detections.shape.size(confidence_axis)" description="Number of values per detection (bounding box + class scores) extracted from input shape." />
+	  <Expression name="class_offset" value="4" description="Starting index of class scores (after x, y, width, height)." />
+	  <Expression name="num_classes" value="confidence_count - class_offset" description="Number of object classes in the detection data." />
+	  <Expression name="class_names" value="detections.shape.getLabels(confidence_axis, class_offset, num_classes)" description="Class label names extracted from input tensor metadata." />
+
+		<!-- Tracking parameters -->
+      <DoubleOption name="tracking_threshold" text="Tracking Threshold" description="IoU (Intersection over Union) threshold (0.0-1.0) for matching detections to existing tracks. Lower values require stricter overlap. Typical values: 0.3-0.5." default="0.3" min="0.0" max="1.0" />
+      
+      <Int32Option name="max_tracks" text="Max Tracks" description="Maximum number of concurrent tracks to maintain. Limits memory usage and processing time. Range: 1-50." default="50" min="1" max="50" />
+      
+      <Int32Option name="max_age" text="Max Age" description="Maximum number of frames a track can exist without a matching detection before being removed. Higher values increase persistence but may retain lost objects longer." default="5" min="1" max="30" />
+      
+      <Int32Option name="min_hits" text="Min Hits" description="Minimum number of consecutive detections required to confirm a new track. Higher values reduce false positives from spurious detections." default="1" min="1" max="10" />
+      
+      <Handle name="tracker_state" text="Tracker State" description="Internal state buffer maintaining active tracks across frames (2208 bytes = 50 tracks * 44 bytes per track + metadata)." size="2208"/>
+      
+      <!-- Output includes track IDs and tracking confidence -->
+	  <Expression name="output_shape" value="detections.shape.replace(confidence_axis, confidence_count + 2)" description="Output tensor shape with 2 additional values per detection (track_id and tracking_confidence)." />
+      <Expression name="output_labels" value="(&quot;x,y,width,height&quot; + &quot;,&quot; + class_names + &quot;,&quot; + &quot;track_id,tracking_confidence&quot;)" description="Output labels including bounding box, class names, track_id, and tracking_confidence."/>
+      
+	  <Expression name="output_shape_with_labels" value="output_shape.withLabels(confidence_axis, output_labels)" description="Output shape with label metadata attached." />
+	  <OutputSocket name="output" pipe="data" type="detections.type" shape="output_shape_with_labels" description="Tracked detections with persistent track IDs (1-127) and tracking confidence scores (0.0-1.0). Has shape [max_detections, confidence_count + 2]." />
+    </Parameters>
+
+    <Contracts>
+      <Assert test="detections.shape.count == 2" error="Detections input must be 2D [confidence_count, max_detections]." />
+      <Assert test="confidence_count >= 4" error="Detection data must have at least 4 elements (x, y, w, h) per detection." />
+      <Assert test="tracking_threshold >= 0.0 &amp;&amp; tracking_threshold &lt;= 1.0" error="Tracking threshold must be between 0.0 and 1.0." />
+      <Assert test="max_tracks >= 1" error="Max tracks must be at least 1." />
+      <Assert test="max_tracks &lt;= 50" error="Max tracks cannot exceed 50." />
+      <Assert test="max_age >= 1" error="Max age must be at least 1." />
+      <Assert test="min_hits >= 1" error="Min hits must be at least 1." />
+      <Assert test="detections.type == System.Float32 || detections.type == System.Int8" error="Detections must be Float32 or Int8." />
+    </Contracts>
+
+    <Init returnStatus="true">
+      <Implementation language="C" fragment="object_tracker.h:object_tracker_init_f32" call="object_tracker_init_f32(tracker_state, max_tracks)">
+        <Conditional value="detections.type == System.Float32" />
+      </Implementation>
+      <Implementation language="C" fragment="object_tracker.h:object_tracker_init_i8" call="object_tracker_init_i8(tracker_state, max_tracks)">
+        <Conditional value="detections.type == System.Int8" />
+      </Implementation>
+    </Init>
+      
+    <Implementations>
+      <!-- Float32 implementation -->
+      <Implementation language="C" fragment="object_tracker.h:object_tracker_f32" call="object_tracker_f32(detections, tracker_state, output, max_detections, confidence_count, tracking_threshold, max_tracks, max_age, min_hits)">
+        <Conditional value="detections.type == System.Float32" />
+      </Implementation>
+      
+      <!-- Int8 implementation -->
+      <Implementation language="C" fragment="object_tracker.h:object_tracker_i8" call="object_tracker_i8(detections, tracker_state, output, max_detections, confidence_count, tracking_threshold, max_tracks, max_age, min_hits)">
+        <Conditional value="detections.type == System.Int8" />
+      </Implementation>
+    </Implementations>
+      
+  </Unit>
+</Imaginet> 

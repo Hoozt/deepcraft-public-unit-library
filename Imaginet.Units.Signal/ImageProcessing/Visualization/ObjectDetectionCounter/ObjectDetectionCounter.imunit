@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Imaginet version="2.0.0.0">
+  <Unit name="Imaginet.Units.Signal.ObjectDetectionCounter">
+    <DisplayName>Object Detection Counter</DisplayName>
+    <DisplayPath>/Image Processing/Object Detection</DisplayPath>
+    <Description>
+		<Header>Description</Header>
+		Count tracked objects crossing a defined rectangular region with separate tallies for entry and exit directions.
+		
+		This unit monitors tracked objects from ObjectTracker and counts complete traversals through a user-defined rectangular counting region. Objects are counted when they fully cross the region boundary, with the crossing direction determining whether it's counted as "in" or "out". The unit tracks position history to ensure reliable crossing detection and supports optional daily automatic counter resets.
+		
+		Input requires a tracked detection tensor [max_detections, confidence_count] from ObjectTracker containing track_id and position data. Outputs are three scalar integers: in_count, out_count, and total_count.
+		
+		Supports float32 and int8 data types.
+
+		<Header>Usage</Header>
+		Use the Object Detection Counter for people counting in buildings, traffic flow analysis, or monitoring object movement through defined zones in video surveillance applications.
+	</Description>
+
+    <Parameters>
+      <InputSocket name="tracked_detections" pipe="data" description="Tracked detection tensor with shape [max_detections, confidence_count] from ObjectTracker containing bounding box coordinates, class scores, track_id, and tracking_confidence. Supports float32 and int8 data types." />
+      
+      <Expression name="detection_axis" value="0" description="Axis index for detections (always 0)." />
+      <Expression name="confidence_axis" value="1" description="Axis index for confidence values (always 1)." />
+      
+      <!-- Tracked detection tensor dimensions -->
+      <Expression name="max_detections" value="tracked_detections.shape.size(detection_axis)" description="Maximum number of tracked objects that can be monitored, extracted from detection tensor shape." />
+      <Expression name="confidence_count" value="tracked_detections.shape.size(confidence_axis)" description="Number of values per detection (bounding box + class scores + track_id + tracking_confidence)." />
+      
+      <!-- Rectangular counting region definition (normalized coordinates 0-1) -->
+      <DoubleOption name="region_x1" text="Region X1" description="Normalized horizontal coordinate (0.0-1.0) of first corner defining the counting region rectangle." default="0.4" min="0.0" max="1.0" />
+      <DoubleOption name="region_y1" text="Region Y1" description="Normalized vertical coordinate (0.0-1.0) of first corner defining the counting region rectangle." default="0.4" min="0.0" max="1.0" />
+      <DoubleOption name="region_x2" text="Region X2" description="Normalized horizontal coordinate (0.0-1.0) of opposite corner defining the counting region rectangle." default="0.6" min="0.0" max="1.0" />
+      <DoubleOption name="region_y2" text="Region Y2" description="Normalized vertical coordinate (0.0-1.0) of opposite corner defining the counting region rectangle." default="0.6" min="0.0" max="1.0" />
+      
+      <!-- Direction mapping for in/out counting -->
+      <Int32Option name="in_direction" text="In Direction" description="Defines which crossing direction counts as 'in'. Objects crossing from the specified corner region toward the opposite corner are counted as 'in', others as 'out'." default="0" ui="dropdown">
+        <OneOf>
+          <Item text="From Top-Left">0</Item>
+          <Item text="From Top-Right">1</Item>
+          <Item text="From Bottom-Left">2</Item>
+          <Item text="From Bottom-Right">3</Item>
+        </OneOf>
+      </Int32Option>
+      
+      <!-- Daily reset time -->
+      <Int32Option name="reset_hour" text="Daily Reset Time" description="Hour of day (0-23, 24-hour format) when all counters automatically reset to zero. Set to -1 (Off) to disable automatic resets. Useful for daily statistics." default="-1" ui="dropdown">
+        <OneOf>
+          <Item text="Off">-1</Item>
+          <Item text="00:00 (Midnight)">0</Item>
+          <Item text="01:00">1</Item>
+          <Item text="02:00">2</Item>
+          <Item text="03:00">3</Item>
+          <Item text="04:00">4</Item>
+          <Item text="05:00">5</Item>
+          <Item text="06:00">6</Item>
+          <Item text="07:00">7</Item>
+          <Item text="08:00">8</Item>
+          <Item text="09:00">9</Item>
+          <Item text="10:00">10</Item>
+          <Item text="11:00">11</Item>
+          <Item text="12:00 (Noon)">12</Item>
+          <Item text="13:00">13</Item>
+          <Item text="14:00">14</Item>
+          <Item text="15:00">15</Item>
+          <Item text="16:00">16</Item>
+          <Item text="17:00">17</Item>
+          <Item text="18:00">18</Item>
+          <Item text="19:00">19</Item>
+          <Item text="20:00">20</Item>
+          <Item text="21:00">21</Item>
+          <Item text="22:00">22</Item>
+          <Item text="23:00">23</Item>
+        </OneOf>
+      </Int32Option>
+      
+      <Handle name="counter_state" text="Counter State" description="Internal state buffer maintaining tracking history for up to 200 objects and crossing counts (20028 bytes). Persists between frames to detect complete traversals." size="20028"/>
+      
+      <!-- Output sockets for count values -->
+      <OutputSocket name="in_count" pipe="data" type="System.Int32" shape="System.Shape(1)" description="Scalar count of objects that have crossed the region in the 'in' direction as defined by in_direction setting. Cumulative since last reset." rate="tracked_detections.rate"/>
+      <OutputSocket name="out_count" pipe="data" type="System.Int32" shape="System.Shape(1)" description="Scalar count of objects that have crossed the region in the 'out' direction (opposite of in_direction). Cumulative since last reset." rate="tracked_detections.rate"/>
+      <OutputSocket name="total_count" pipe="data" type="System.Int32" shape="System.Shape(1)" description="Scalar total count of all crossings (in_count + out_count). Cumulative since last reset." rate="tracked_detections.rate"/>
+    </Parameters>
+
+    <Contracts>
+      <Assert test="tracked_detections.shape.count == 2" error="Tracked detections input must be 2D [confidence_count, max_detections]." />
+      <Assert test="confidence_count >= 6" error="Tracked detection data must have at least 6 elements (x, y, w, h, track_id, tracking_confidence)." />
+      <Assert test="region_x1 >= 0.0 &amp;&amp; region_x1 &lt;= 1.0" error="Region X1 must be between 0.0 and 1.0." />
+      <Assert test="region_y1 >= 0.0 &amp;&amp; region_y1 &lt;= 1.0" error="Region Y1 must be between 0.0 and 1.0." />
+      <Assert test="region_x2 >= 0.0 &amp;&amp; region_x2 &lt;= 1.0" error="Region X2 must be between 0.0 and 1.0." />
+      <Assert test="region_y2 >= 0.0 &amp;&amp; region_y2 &lt;= 1.0" error="Region Y2 must be between 0.0 and 1.0." />
+      <Assert test="reset_hour >= -1 &amp;&amp; reset_hour &lt;= 23" error="Reset hour must be -1 (Off) or between 0 and 23." />
+      <Assert test="tracked_detections.type == System.Float32 || tracked_detections.type == System.Int8" error="Tracked detections must be Float32 or Int8." />
+    </Contracts>
+
+    <Init returnStatus="true">
+      <Implementation language="C" fragment="object_detection_counter.h:object_detection_counter_init_f32" call="object_detection_counter_init_f32(counter_state)">
+        <Conditional value="tracked_detections.type == System.Float32" />
+      </Implementation>
+      <Implementation language="C" fragment="object_detection_counter.h:object_detection_counter_init_i8" call="object_detection_counter_init_i8(counter_state)">
+        <Conditional value="tracked_detections.type == System.Int8" />
+      </Implementation>
+    </Init>
+
+    <Implementations>
+      <!-- Float32 implementation -->
+      <Implementation language="C" fragment="object_detection_counter.h:object_detection_counter_f32" 
+                      call="object_detection_counter_f32(tracked_detections, counter_state, in_count, out_count, total_count, max_detections, confidence_count, region_x1, region_y1, region_x2, region_y2, in_direction, reset_hour)">
+        <Conditional value="tracked_detections.type == System.Float32" />
+      </Implementation>
+      
+      <!-- Int8 implementation -->
+      <Implementation language="C" fragment="object_detection_counter.h:object_detection_counter_i8" 
+                      call="object_detection_counter_i8(tracked_detections, counter_state, in_count, out_count, total_count, max_detections, confidence_count, region_x1, region_y1, region_x2, region_y2, in_direction, reset_hour)">
+        <Conditional value="tracked_detections.type == System.Int8" />
+      </Implementation>
+    </Implementations>
+  </Unit>
+</Imaginet> 

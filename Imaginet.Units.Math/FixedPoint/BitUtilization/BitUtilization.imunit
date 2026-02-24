@@ -5,13 +5,21 @@
 		<DisplayPath>/Utilities/Quantization</DisplayPath>
 		
 		<Description>
-			The number of leading redundant sign bits in x, i.e. the number of bits following the most significant bit that are identical to it.
+			<Header>Description</Header>
+			Calculate the number of bits actively used to represent each fixed-point value, excluding leading redundant sign bits.
+			
+			This unit analyzes fixed-point numbers to determine how many bits are actually being utilized to represent the value. It counts the bits from the least significant bit up to and including the most significant bit that differs from the sign bit. Redundant sign bits (leading bits identical to the sign bit) are not counted. This information is useful for optimizing fixed-point arithmetic and determining appropriate quantization scales.
+			
+			The unit operates on fixed-point formats Q7, Q15, and Q31, outputting int8 values representing the bit utilization for each element. The tensor shape is preserved.
+
+			<Header>Usage</Header>
+			Use the Bit Utilization unit when you need to analyze the dynamic range of fixed-point data to optimize quantization parameters or detect potential overflow conditions.
 		</Description>
 
 		<Parameters>
-			<InputSocket name="input" />			
-			<Expression name="count" value="input.shape.flat()" />
-			<OutputSocket name="output" type="System.Int8" shape="input.shape" />			
+			<InputSocket name="input" description="Input tensor in fixed-point format. Supports Q7, Q15, and Q31 data types only." />			
+			<Expression name="count" value="input.shape.flat()" description="Total number of elements in the input tensor (computed from flattened shape)." />
+			<OutputSocket name="output" type="System.Int8" shape="input.shape" description="Output tensor containing bit utilization values (int8). Each element represents the number of bits used for the corresponding input value." />			
 		</Parameters>
 
 		<Contracts>
