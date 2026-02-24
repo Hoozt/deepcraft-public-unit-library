@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Imaginet version="2.0.0.0">
+  <Unit name="Imaginet.Units.Signal.DisplayNumber">
+    <DisplayName>Display Number</DisplayName>
+    <DisplayPath>/Image Processing/Image Manipulation</DisplayPath>
+    <Description>
+		<Header>Description</Header>
+		Render a numeric value (integer or float) as text on an image with configurable position, color, and style.
+		
+		This unit overlays a numeric value onto an image at a specified position using bitmap fonts. Supports multiple font sizes, nine color options, and adjustable decimal places for floating-point values. An optional colored background rectangle can be drawn behind the text for better visibility. Position is specified using normalized coordinates (0.0-1.0) relative to image dimensions.
+		
+		Input requires an image tensor [H,W] or [H,W,C] and a scalar numeric value. Output is the image with the rendered number overlaid.
+		
+		Supports float32 images with float32 or int32 values.
+
+		<Header>Usage</Header>
+		Use the Display Number unit to overlay metrics, counters, measurements, or other numerical data directly on images for visualization, monitoring, or debugging.
+	</Description>
+
+    <Parameters>
+      <InputSocket name="image" pipe="data" description="Input image tensor with shape [height, width] for grayscale or [height, width, channels] for color images. This image will be modified with overlaid text. Supports float32 data type only." />
+      <InputSocket name="value" pipe="data" description="Scalar numeric value to display on the image. Must be a single value (scalar or shape [1]). Supports float32 or int32 data types." />
+      
+      <!-- Image dimensions -->
+      <Expression name="channels" value="image.shape.count == 2 ? 1 : image.shape.size(-3)" description="Number of channels in the input image (1 for grayscale, 3 for RGB)." />
+      <Expression name="index_offset" value="channels == 3 ? 1 : 0" description="Internal offset for dimension indexing based on channel count." />
+      <Expression name="image_height" value="image.shape.size(1+index_offset)" description="Height of the input image extracted from tensor shape." />
+      <Expression name="image_width" value="image.shape.size(0+index_offset)" description="Width of the input image extracted from tensor shape." />
+      
+      <!-- Display options -->
+      <DoubleOption name="x_position" text="X Position" description="Normalized horizontal position (0.0-1.0) where 0.0 is left edge and 1.0 is right edge. Controls where the text starts horizontally." default="0.05" min="0.0" max="1.0" />
+      <DoubleOption name="y_position" text="Y Position" description="Normalized vertical position (0.0-1.0) where 0.0 is top edge and 1.0 is bottom edge. Controls where the text starts vertically." default="0.1" min="0.0" max="1.0" />
+      
+      <Int32Option name="font_size" text="Font Size" description="Font size for rendering the number. Larger sizes are more visible but require more space on the image." default="2" min="0" max="3" ui="textbox">
+        <OneOf>
+          <Item text="Tiny (3x5)">0</Item>
+          <Item text="Small (5x7)">1</Item>
+          <Item text="Large (8x12)">2</Item>
+          <Item text="Extra Large (12x16)">3</Item>
+        </OneOf>
+      </Int32Option>
+      
+      <Int32Option name="text_color" text="Text Color" description="Color to use for rendering the number text. Choose a color that contrasts well with the background image." default="0" ui="textbox">
+        <OneOf>
+          <Item text="White">0</Item>
+          <Item text="Black">1</Item>
+          <Item text="Red">2</Item>
+          <Item text="Green">3</Item>
+          <Item text="Blue">4</Item>
+          <Item text="Yellow">5</Item>
+          <Item text="Magenta">6</Item>
+          <Item text="Cyan">7</Item>
+          <Item text="Orange">8</Item>
+        </OneOf>
+      </Int32Option>
+      
+      <Int32Option name="decimal_places" text="Decimal Places" description="Number of decimal places to display for floating-point values (0-6). Set to 0 to display integers only. Higher values show more precision." default="2" min="0" max="6" />
+
+      <!-- Background options -->
+      <BoolOption name="show_background" text="Show Background" description="If enabled, draws a colored background rectangle behind the text for improved readability against complex image backgrounds." default="false" />
+      
+      <OutputSocket name="output" pipe="data" type="image.type" shape="image.shape" description="Output image with the numeric value rendered as text at the specified position. Has the same shape and data type as the input image." />
+    </Parameters>
+
+    <Contracts>
+      <Assert test="image.shape.count >= 2" error="Image input must be at least 2D (HxW or HxWxC)." />
+      <Assert test="value.shape.count == 0 || (value.shape.count == 1 &amp;&amp; value.shape.size(0) == 1)" error="Value input must be a scalar." />
+      <Assert test="x_position >= 0.0 &amp;&amp; x_position &lt;= 1.0" error="X position must be between 0.0 and 1.0." />
+      <Assert test="y_position >= 0.0 &amp;&amp; y_position &lt;= 1.0" error="Y position must be between 0.0 and 1.0." />
+      <Assert test="font_size >= 0 &amp;&amp; font_size &lt;= 3" error="Font size must be between 0 and 3." />
+      <Assert test="decimal_places >= 0 &amp;&amp; decimal_places &lt;= 6" error="Decimal places must be between 0 and 6." />
+    </Contracts>
+
+    <Implementations>
+      <Implementation language="C" fragment="display_number.h:display_number_f32" 
+                      call="display_number_f32(image, value, output, image_height, image_width, channels, x_position, y_position, font_size, text_color, decimal_places, show_background)">
+        <Conditional value="image.type == System.Float32 &amp;&amp; value.type == System.Float32" />
+      </Implementation>
+      
+      <Implementation language="C" fragment="display_number.h:display_number_i32" 
+                      call="display_number_i32(image, value, output, image_height, image_width, channels, x_position, y_position, font_size, text_color, decimal_places, show_background)">
+        <Conditional value="image.type == System.Float32 &amp;&amp; value.type == System.Int32" />
+      </Implementation>
+    </Implementations>
+  </Unit>
+</Imaginet> 

@@ -5,28 +5,37 @@
 		<DisplayPath>/Utilities/Quantization</DisplayPath>
 		
 		<Description>
-			Convert Shifted Fixed Point (Q7, Q15, Q31) or 
-			Scaled Fixed Point (D8, D16, D32) to floating point or int8.
-			Supports output to Float32 or Int8 with configurable conversion modes.
+			<Header>Description</Header>
+			Convert fixed-point or integer representations back to floating-point or int8 format, reversing the quantization process.
+			
+			This unit performs dequantization by transforming quantized data types into higher-precision representations. It supports three quantization schemes:
+			- Shifted Fixed Point (Q7, Q15, Q31): Uses bit-shift scaling
+			- Scaled Fixed Point (D8, D16, D32): Uses scale and offset parameters
+			- Integer types (int8, int16, int32): Direct conversion
+			
+			The output can be either float32 for full precision or int8 for compact representation. The shift, scale, and offset parameters are automatically extracted from the input tensor metadata. The tensor shape is preserved.
+
+			<Header>Usage</Header>
+			Use the Dequantize unit when you need to convert quantized model outputs or intermediate results back to floating-point for visualization, post-processing, or interfacing with floating-point operations.
 		</Description>
 
 		<Parameters>
-			<InputSocket name="input" />
+			<InputSocket name="input" description="Input tensor in fixed-point or integer format. Supports Q7, Q15, Q31 (shifted fixed-point), D8, D16, D32 (scaled fixed-point), and int8, int16, int32 (integer types)." />
 			
-			<Expression name="count" value="input.shape.flat()" />
+			<Expression name="count" value="input.shape.flat()" description="Total number of elements in the input tensor (computed from flattened shape)." />
 			
-			<StringOption name="output_type" text="Output Type" description="Select output data type" default="float32">
+			<StringOption name="output_type" text="Output Type" description="Target data type for dequantization. Float32 provides full precision, int8 provides compact output." default="float32">
 				<OneOf>
 					<Item text="Float32">float32</Item>
 					<Item text="Int8">int8</Item>
 				</OneOf>
 			</StringOption>
 			
-			<OutputSocket name="output" type="output_type == &quot;float32&quot; ? System.Float32 : System.Int8" shape="input.shape" />
+			<OutputSocket name="output" type="output_type == &quot;float32&quot; ? System.Float32 : System.Int8" shape="input.shape" description="Output tensor containing dequantized values. Has the same shape as the input but with the selected output data type." />
 
-			<Expression name="shift" value="input.shift" />
-			<Expression name="offset" value="input.offset" />
-			<Expression name="scale" value="input.scale" />
+			<Expression name="shift" value="input.shift" description="Bit shift value extracted from the input tensor metadata (used for Q-format dequantization)." />
+			<Expression name="offset" value="input.offset" description="Offset value extracted from the input tensor metadata (used for D-format dequantization)." />
+			<Expression name="scale" value="input.scale" description="Scale factor extracted from the input tensor metadata (used for D-format dequantization)." />
 			
 		</Parameters>
 

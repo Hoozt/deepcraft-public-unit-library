@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Imaginet version="2.0.0.0">
+  <Unit name="Imaginet.Units.Signal.DrawLine">
+    <DisplayName>Draw Line</DisplayName>
+    <DisplayPath>/Image Processing/Image Manipulation</DisplayPath>
+    <Description>
+		<Header>Description</Header>
+		Draw a straight line on an image between two points specified with normalized coordinates.
+		
+		This unit draws a line connecting two points (x1,y1) and (x2,y2) using normalized coordinates (0.0-1.0). Line thickness and color are configurable. The implementation uses Bresenham's algorithm for efficient line rasterization with anti-aliasing support for smooth rendering.
+		
+		Input is an image tensor [H,W] or [H,W,C]. Output is the same image with the drawn line overlaid.
+		
+		Supports float32 data type only.
+
+		<Header>Usage</Header>
+		Use the Draw Line unit to create dividers, connect points, draw trajectories, create grids, or add linear annotations to images.
+	</Description>
+
+    <Parameters>
+      <InputSocket name="image" pipe="data" description="Input image tensor with shape [height, width] for grayscale or [height, width, channels] for color images. This image will be modified with the drawn line. Supports float32 data type only." />
+      
+      <!-- Image dimensions -->
+      <Expression name="channels" value="image.shape.count == 2 ? 1 : image.shape.size(-3)" description="Number of channels in the input image (1 for grayscale, 3 for RGB)." />
+      <Expression name="index_offset" value="channels == 3 ? 1 : 0" description="Internal offset for dimension indexing based on channel count." />
+      <Expression name="image_height" value="image.shape.size(1+index_offset)" description="Height of the input image extracted from tensor shape." />
+      <Expression name="image_width" value="image.shape.size(0+index_offset)" description="Width of the input image extracted from tensor shape." />
+      
+      <!-- Drawing coordinates (normalized 0-1) -->
+      <DoubleOption name="x1" text="X1 Coordinate" description="Normalized horizontal coordinate (0.0-1.0) of line start point, where 0.0 is left edge and 1.0 is right edge." default="0.1" min="0.0" max="1.0" />
+      <DoubleOption name="y1" text="Y1 Coordinate" description="Normalized vertical coordinate (0.0-1.0) of line start point, where 0.0 is top edge and 1.0 is bottom edge." default="0.1" min="0.0" max="1.0" />
+      <DoubleOption name="x2" text="X2 Coordinate" description="Normalized horizontal coordinate (0.0-1.0) of line end point, where 0.0 is left edge and 1.0 is right edge." default="0.9" min="0.0" max="1.0" />
+      <DoubleOption name="y2" text="Y2 Coordinate" description="Normalized vertical coordinate (0.0-1.0) of line end point, where 0.0 is top edge and 1.0 is bottom edge." default="0.9" min="0.0" max="1.0" />
+      
+      <!-- Drawing options -->
+      <Int32Option name="thickness" text="Line Thickness" description="Thickness of the line in pixels (1-10). Thicker lines are more visible but can obscure details." default="2" min="1" max="10" />
+      
+      <!-- Color options -->
+      <Int32Option name="color" text="Color" description="Color for the line. Choose a color that contrasts with the image content for visibility." default="0" ui="dropdown">
+        <OneOf>
+          <Item text="Black">0</Item>
+          <Item text="White">1</Item>
+          <Item text="Blue Dark">2</Item>
+          <Item text="Orange">3</Item>
+          <Item text="Teal">4</Item>
+          <Item text="Gray Cool">5</Item>
+          <Item text="Purple">6</Item>
+          <Item text="Green Light">7</Item>
+          <Item text="Red">8</Item>
+          <Item text="Gray Warm">9</Item>
+          <Item text="Indigo">10</Item>
+          <Item text="Light Orange">11</Item>
+        </OneOf>
+      </Int32Option>
+
+      <OutputSocket name="output" pipe="data" type="image.type" shape="image.shape" description="Output image with the line drawn between the specified coordinates. Has the same shape and data type as the input image." />
+    </Parameters>
+
+    <Contracts>
+      <Assert test="image.shape.count >= 2" error="Image input must be at least 2D (HxW or HxWxC)." />
+      <Assert test="thickness >= 1" error="Thickness must be at least 1 pixel." />
+      <Assert test="x1 >= 0.0 &amp;&amp; x1 &lt;= 1.0" error="X1 coordinate must be between 0.0 and 1.0." />
+      <Assert test="y1 >= 0.0 &amp;&amp; y1 &lt;= 1.0" error="Y1 coordinate must be between 0.0 and 1.0." />
+      <Assert test="x2 >= 0.0 &amp;&amp; x2 &lt;= 1.0" error="X2 coordinate must be between 0.0 and 1.0." />
+      <Assert test="y2 >= 0.0 &amp;&amp; y2 &lt;= 1.0" error="Y2 coordinate must be between 0.0 and 1.0." />
+    </Contracts>
+
+    <Implementations>
+      <Implementation language="C" fragment="draw_line.h:draw_line_f32" 
+                      call="draw_line_f32(image, output, image_height, image_width, channels, x1, y1, x2, y2, thickness, color)">
+        <Conditional value="image.type == System.Float32" />
+      </Implementation>
+    </Implementations>
+  </Unit>
+</Imaginet>

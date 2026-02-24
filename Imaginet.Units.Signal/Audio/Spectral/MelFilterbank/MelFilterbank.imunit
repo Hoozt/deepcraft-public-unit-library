@@ -1,0 +1,76 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<Imaginet>
+
+	<Unit name="Imaginet.Units.Signal.MelFilterbank">
+		<DisplayName>Mel Filterbank</DisplayName>
+		<DisplayPath>/Signal Processing/Spectral Utilities</DisplayPath>
+
+		<Description>
+			<Header>Description</Header>
+			Apply triangular filters arranged on the mel frequency scale to convert linear frequency spectra into perceptually-relevant mel-frequency bins.
+			
+			This unit processes frequency-domain data using overlapping triangular filters spaced according to the mel scale, a quasi-logarithmic function where perceptually similar pitch intervals appear equal in width. Input shape [frequency_bins, ...] is reduced to [num_filters, ...] where each output represents weighted energy in one mel band.
+			
+			Supports float32, Q31, and Q15 data types. CMSIS-optimized implementations available.
+
+			<Header>Usage</Header>
+			Use the Mel Filterbank unit to convert FFT output to mel-scale representation for audio feature extraction and speech recognition.
+
+			<Image file="images/mel.png" width="450" />
+
+			<Image file="images/matrix.png" width="400" />
+		</Description>
+
+		<Parameters>
+			<InputSocket name="input" text="Input" description="Input frequency-domain data, typically FFT magnitude. Shape [frequency_bins, ...]. Supports float32, Q31, and Q15." />
+			<Int32Option name="num_filters" min="0" max="65536" default="26" ui="textbox" text="Number of filters" description="Number of triangular mel filters. Determines output dimensionality. Common values: 26-40 for speech, 128 for music." />
+			<Int32Option name="sample_rate" min="0" max="65536"  default="16000" ui="textbox" text="Sample rate" description="Audio sample rate in Hz. Used to map frequency bins to physical frequencies. f_high must be less than or equal to sample_rate/2." />
+			<Int32Option name="f_low" min="0" max="65536" default="300" ui="textbox" text="Low cut frequency" description="Lowest frequency in Hz covered by the filterbank. Must be less than f_high." />
+			<Int32Option name="f_high" min="0" max="65536" default="8000" ui="textbox" text="High cut frequency" description="Highest frequency in Hz covered by the filterbank. Must be greater than f_low and less than or equal to sample_rate/2." />
+
+			<Int32Option name="shift" text="Shift" default="0" description="Additional bit shift for fixed-point output scaling." />
+			
+			<Expression name="size" value="input.shape.size(0)" description="Number of frequency bins in the input." />
+			<Expression name="slot" value="input.shape.slot(0)" description="Number of frames or slices to process." />
+			<Expression name="output_shift" value="(size/num_filters).log2.floor + shift" description="Computed bit shift for fixed-point normalization." />
+			
+			<BoolOption name="global_use_cmsis" text="Use CMSIS" default="false" global="true" description="Enable CMSIS-optimized implementations for ARM Cortex processors."/>
+		
+			<External name="filter_points" assembly="Imaginet.Units.Signal" class="Imaginet.Units.Signal.MelFilterbank.Mel" call="MelFilterPoints(f_low, f_high, num_filters, size, sample_rate)" description="Frequency bin indices defining triangular filter boundaries on mel scale." />
+			<External name="filter_coefs_f32" assembly="Imaginet.Units.Signal" class="Imaginet.Units.Signal.MelFilterbank.Mel" call="MelFilterCoefsF32(filter_points)" description="Precomputed float32 coefficients for CMSIS." />
+			<External name="filter_coefs_q31" assembly="Imaginet.Units.Signal" class="Imaginet.Units.Signal.MelFilterbank.Mel" call="MelFilterCoefsQ31(filter_points)" description="Precomputed Q31 coefficients for CMSIS." />
+			<External name="filter_coefs_q15" assembly="Imaginet.Units.Signal" class="Imaginet.Units.Signal.MelFilterbank.Mel" call="MelFilterCoefsQ15(filter_points)" description="Precomputed Q15 coefficients for CMSIS." />
+			<OutputSocket name="output" type="input.type" shape="input.shape.replace(0, num_filters)" shift="input.shift + output_shift" description="Mel-frequency bins with shape [num_filters, ...]. Each value represents weighted energy in one mel band." />
+		</Parameters>
+
+		<Contracts>
+			<Assert test="f_low &lt; f_high" error="Low cut frequency ({f_low} Hz) must be less then high cut frequency ({f_high} Hz)" />
+			<Assert test="f_high &lt;= sample_rate / 2" error="High cut frequency ({f_high} Hz) must be equal or less than half of sample rate ({sample_rate} Hz) due to Nyquist–Shannon sampling theorem." />
+		</Contracts>
+
+		<Implementations>
+			<Implementation language="C" fragment="mel.h:mel_f32" call="mel_f32(input, filter_points, size, slot, num_filters, output)">
+				<Conditional value="!global_use_cmsis"/>
+				<Conditional value="input.type == System.Float32" />
+			</Implementation>
+
+			<Implementation language="C" fragment="mel_cmsis.h:mel_cmsis_f32" call="mel_cmsis_f32(input, filter_points, filter_coefs_f32, size, slot, num_filters, output)">
+				<Conditional value="global_use_cmsis"/>
+				<Conditional value="input.type == System.Float32" />
+			</Implementation>
+			
+			<Implementation language="C" fragment="mel_cmsis.h:mel_cmsis_q31" call="mel_cmsis_q31(input, filter_points, filter_coefs_q31, size, slot, num_filters, output, output_shift)">
+				<Conditional value="global_use_cmsis"/>
+				<Conditional value="input.type == System.Q31" />
+			</Implementation>
+			
+			<Implementation language="C" fragment="mel_cmsis.h:mel_cmsis_q15" call="mel_cmsis_q15(input, filter_points, filter_coefs_q15, size, slot, num_filters, output, output_shift)">
+				<Conditional value="global_use_cmsis"/>
+				<Conditional value="input.type == System.Q15" />
+			</Implementation>
+			
+			<Implementation language="Python" fragment="mel.py:mel" call="mel(input, filter_points, output, size)" />
+		</Implementations>
+
+	</Unit>
+</Imaginet>

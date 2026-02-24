@@ -5,24 +5,32 @@
 		<DisplayPath>/Math/Multi-Tensor Operations</DisplayPath>
 
 		<Description>
-			Divide arguments with broadcasting.
+			<Header>Description</Header>
+			Perform element-wise division of two tensors, automatically handling different shapes through broadcasting.
+			
+			This unit divides corresponding elements from the first tensor by elements from the second tensor. When the input shapes differ, broadcasting rules are applied to automatically expand dimensions, allowing tensors of different shapes to be divided. The output shape matches the first operand's shape.
+			
+			Broadcasting enables operations like dividing a matrix by a scalar, dividing each row of a matrix by a vector, or performing division on tensors with compatible but non-identical dimensions. Currently supports float32 data type.
+
+			<Header>Usage</Header>
+			Use the Division unit when you need to perform element-wise division between two tensors, such as normalizing features by scaling factors or computing ratios.
 
 			<Header>Python implementation</Header>
 			<Inline fragment="div.py:div" language="Python" />
 		</Description>
 
 		<Parameters>
-			<InputSocket name="a" description="First operand" />
-			<InputSocket name="b" description="Second operand" />
-			<OutputSocket name="output" type="a.type" shape="a.shape" text="Output" description="Output buffer. It will have the same shape as the first operand." />
+			<InputSocket name="a" description="First input tensor (dividend). Supports float32 data type. Determines the output shape." />
+			<InputSocket name="b" description="Second input tensor (divisor). Supports float32 data type. Will be broadcast to match the first operand if shapes differ." />
+			<OutputSocket name="output" type="a.type" shape="a.shape" text="Output" description="Output tensor containing element-wise division results. Has the same shape and data type as the first operand." />
 
-			<Expression name="bcast" value="a.shape.broadcast(b.shape)" description="Result from shape broadcast" />
+			<Expression name="bcast" value="a.shape.broadcast(b.shape)" description="Broadcasting configuration computed from the two input shapes." />
 
-			<Expression name="left" value="bcast.left" description="The product of axis length of left parts in dimensions with no boardcast, minimum 1" />
-			<Expression name="group1" value="bcast.group1" description="The product of axis length of left group which needs boardcasting, minimum 1" />
-			<Expression name="middle" value="bcast.middle" description="The product of axis length of middle parts in dimensions with no boardcast, minimum 1" />
-			<Expression name="group2" value="bcast.group2" description="The product of axis length of right group which needs boardcasting, minimum 1" />
-			<Expression name="right" value="bcast.right" description="The product of axis length of right parts in dimensions with no boardcast, minimum 1" />
+			<Expression name="left" value="bcast.left" description="Number of elements in left non-broadcast dimensions." />
+			<Expression name="group1" value="bcast.group1" description="Number of elements in left broadcast group." />
+			<Expression name="middle" value="bcast.middle" description="Number of elements in middle non-broadcast dimensions." />
+			<Expression name="group2" value="bcast.group2" description="Number of elements in right broadcast group." />
+			<Expression name="right" value="bcast.right" description="Number of elements in right non-broadcast dimensions." />
 		</Parameters>
 
 		<Implementations>

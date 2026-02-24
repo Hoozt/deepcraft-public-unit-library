@@ -3,11 +3,26 @@
   <Unit name="Imaginet.Units.Math.Variance">
     <DisplayName>Variance</DisplayName>
     <DisplayPath>/Math/Statistics</DisplayPath>
-    <Description>This function calculates how much a list of numbers varies from their average by finding the average of the squared differences, storing the result as the variance.</Description>
+    <Description>
+		<Header>Description</Header>
+		Calculate the variance of a 1D input tensor, measuring the spread of values around their mean.
+		
+		This unit computes the variance, which quantifies how much the data values deviate from their average. It measures the average of the squared differences from the mean. A low variance indicates that values are clustered closely around the mean, while a high variance indicates values are spread out over a wider range.
+		
+		The calculation involves:
+		1. Computing the mean (average) of the input values.
+		2. Calculating the squared differences between each value and the mean.
+		3. Taking the average of these squared differences to obtain the variance.
+		
+		Supports float32 data type only and requires a 1D input tensor. The output is a scalar (shape [1]).
+
+		<Header>Usage</Header>
+		Use the Variance unit to measure data dispersion, assess consistency in measurements, or analyze the spread of feature values in statistical analysis.
+	</Description>
     <Parameters>
-      <InputSocket name="input" pipe="data" />
-      <OutputSocket name="output" pipe="data" type="input.type" shape="input.shape.replace(0, 1)" description="Output buffer. It will have the same shape as the input but with the selected axis reduced."/>
-      <Expression name="count" value="input.shape.flat" description="Number of elements in input" />
+      <InputSocket name="input" pipe="data" description="Input 1D tensor to compute variance from. Supports float32 data type only." />
+      <OutputSocket name="output" pipe="data" type="input.type" shape="input.shape.replace(0, 1)" description="Output scalar tensor (shape [1]) containing the calculated variance value. Has the same data type as the input."/>
+      <Expression name="count" value="input.shape.flat" description="Total number of elements in the input tensor (computed from flattened shape)." />
     </Parameters>
 	  <Contracts>
 		  <Assert

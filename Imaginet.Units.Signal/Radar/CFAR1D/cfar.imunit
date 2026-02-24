@@ -1,0 +1,76 @@
+﻿<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<Imaginet version="2.0.0.0">
+  <Unit name="Imaginet.Units.Signal.CFAR1D">
+    <DisplayName>CFAR 1D</DisplayName>
+    <DisplayPath>/Signal Processing/Sensor Packages/Radar</DisplayPath>
+    
+	<Description>
+		<Header>Description</Header>
+		Detect radar targets using a Cell-Averaging Constant False Alarm Rate (CFAR) algorithm for one-dimensional analysis.
+		
+		This unit implements a CFAR detection algorithm that identifies targets in radar data by comparing each cell's signal strength to an adaptive threshold computed from surrounding reference cells. The algorithm analyzes either range bins or Doppler bins (user-selectable) within the input tensor.
+		
+		The input tensor must have shape [count_chirps, count_samples, count_antennas]. For each cell under test (CUT), the algorithm:
+		1. Computes a noise estimate by averaging reference cells in a sliding window (excluding gap cells).
+		2. Calculates a detection threshold by scaling the noise estimate with a bias factor.
+		3. Identifies cells exceeding the threshold as potential targets.
+		4. Returns the top N targets (user-specified) with their indices and optional amplitudes.
+		
+		Antenna data can be combined using either average or maximum mode. Gap cells prevent target self-shadowing by excluding cells immediately adjacent to the CUT from the noise estimate.
+		
+		Supports float32 data type only.
+
+		<Header>Usage</Header>
+		Use the CFAR 1D unit in radar signal processing pipelines to automatically detect targets while maintaining a constant false alarm rate, even in varying noise environments such as clutter or interference.
+	</Description>
+
+    <Parameters>
+      <InputSocket name="input" pipe="data" description="Input radar data tensor with shape [count_chirps, count_samples, count_antennas]. Supports float32 data type only." />									
+      <Expression name="count" value="input.shape.flat" description="Total number of elements in the input tensor." />
+	  <Expression name="count_antennas" value="input.shape.size(0)" description="Number of antenna channels in the radar array." />
+	  <Expression name="count_samples" value="input.shape.size(1)" description="Number of range samples per chirp." />
+	  <Expression name="count_chirps" value="input.shape.size(2)" description="Number of chirps in the radar frame." />	  
+	  <Int32Option name="num_targets" ui="textbox" text="Number of targets" description="Maximum number of targets to detect and output (1-3). The algorithm returns the strongest targets based on signal strength." default="1">
+ 		<OneOf>
+		<Item text="1">1</Item>
+		<Item text="2">2</Item>
+		<Item text="3">3</Item>
+	</OneOf>
+	  </Int32Option>
+	  <Int32Option name="dimensions" ui="textbox" text="Dimensions" description="Selects the analysis dimension. Range mode processes range bins (constant Doppler), Doppler mode processes Doppler bins (constant range).">
+ 		<OneOf>
+		<Item text="Range">0</Item>
+		<Item text="Doppler">1</Item>
+	</OneOf>
+	   </Int32Option>
+	   
+	   <Int32Option name="antenna_mode" ui="textbox" text="Antenna Mode" description="Specifies how multi-antenna data is combined. Average mode computes the mean across antennas, Max mode selects the strongest antenna signal.">
+ 		<OneOf>
+		<Item text="Average">0</Item>
+		<Item text="Max">1</Item>
+	</OneOf>
+	   </Int32Option>
+	  
+	  <Int32Option name="window_size" default="8" ui="textbox" text="Reference Cells" description="Number of reference cells on each side of the CUT used to estimate local noise level. Larger values provide more robust noise estimation but reduce spatial resolution." />
+	  <Int32Option name="gap_cells" default="2" ui="textbox" text="Gap Cells" description="Number of guard cells on each side of the CUT excluded from noise estimation. Prevents target energy from contaminating the noise estimate." />
+	  <DoubleOption name="bias" default="1.5" ui="textbox" text="Bias" description="Scaling factor applied to the noise estimate to compute the detection threshold. Higher values reduce false alarms but may miss weak targets." />
+	  <BoolOption name="output_amplitude" text="Output Amplitude" description="If true, outputs both target indices and amplitudes. If false, outputs only target indices." default="true" />
+
+      <OutputSocket name="output" pipe="data" type="input.type" shape="System.Shape((output_amplitude ? 2 : 1)*num_targets)" description="Output tensor containing detected target information. Format: [index1, amplitude1, index2, amplitude2, ...] if output_amplitude is true, or [index1, index2, ...] if false." />
+    </Parameters>
+	
+	<Contracts>
+		<Assert test="bias >= 0" error="Bias needs to be positive." />
+		<Assert test="window_size >= 0" error="Reference Cells needs to be positive." />
+		<Assert test="gap_cells >= 0" error="Gap Cells needs to be positive." />
+		<Assert test="input.shape.count == 3" error="Unexpected input tensor format ({output.shape}). Expect tensor to have shape [Chirps, Samples, Antennas]" />
+	</Contracts>
+	
+	<Implementations>
+      <Implementation language="C" fragment="cfar.h:cfar_1d_f32" call="cfar_1d_f32(input, output, dimensions, antenna_mode, window_size, gap_cells, bias, num_targets, count_antennas, count_samples, count_chirps, output_amplitude)">
+        <Conditional value="input.type == System.Float32" />
+      </Implementation>
+    </Implementations>
+  
+	</Unit>
+</Imaginet>

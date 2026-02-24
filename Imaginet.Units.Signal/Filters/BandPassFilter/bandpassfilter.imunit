@@ -1,0 +1,65 @@
+﻿<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<Imaginet version="2.0.0.0">
+  <Compound unit="Imaginet.Units.Filter.BandPassFilter">
+	  <DisplayName>Band Pass Filter</DisplayName>
+	  <DisplayPath>/Signal Processing/Time Domain</DisplayPath>
+	  <Description>
+		<Header>Description</Header>
+		Allow signals within a specific frequency range to pass through while attenuating frequencies outside this band.
+		
+		This unit implements a band pass filter by applying a low-pass filter and a high-pass filter. The filter passes frequencies between the low cutoff frequency and high cutoff frequency, while suppressing frequencies below the low cutoff and above the high cutoff. This creates a "pass band" where signals are transmitted with minimal attenuation.
+		
+		The filter is implemented as a compound unit:
+		1. First, a low-pass filter removes frequencies above the high cutoff frequency.
+		2. Then, a high-pass filter removes frequencies below the low cutoff frequency.
+		3. The result is a signal containing only frequencies within the desired band.
+		
+		The low cutoff frequency must be less than the high cutoff frequency to create a valid pass band. The sharpness of the frequency cutoff depends on the filter order used by the underlying low-pass and high-pass implementations.
+		
+		The output maintains the same shape and data type as the input.
+
+		<Header>Usage</Header>
+		Use the Band Pass Filter to isolate frequency components of interest, remove noise outside a specific frequency range, or extract signals within a known frequency band such as speech frequencies or specific vibration modes.
+	  </Description>
+	  <Nodes>
+		  <UnitNode id="node_1" x="677.8616666666667" y="549.7049999999999" enabled="true" unit="Imaginet.Units.Filter.HighPassFilter" />
+		  <TensorInputNode id="node_4" x="81.57999999999993" y="426.375" enabled="true" name="Input" param="node_4_input">
+			  <Description>Input signal to be filtered. Can be any shape and data type.</Description>
+		  </TensorInputNode>
+		  <TensorOutputNode id="node_5" param="node_5_output" x="999.6616666666666" y="570.375" enabled="true" name="Output" description="Filtered output signal containing only frequencies within the pass band. Has the same shape and data type as the input."/>
+		  <DoubleOptionNode id="node_3" x="42.75833333333321" y="283.375" enabled="true" name="High Cutoff Frequency" param="node_3_input">
+			  <Description>Upper frequency limit of the pass band (Hz). Frequencies above this value are attenuated. Must be greater than the low cutoff frequency.</Description>
+			  <MinValue>-1.7976931348623157E+308</MinValue>
+			  <MaxValue>1.7976931348623157E+308</MaxValue>
+		  </DoubleOptionNode>
+		  <UnitNode id="node_0" x="356.0616666666665" y="406.70500000000004" enabled="true" unit="Imaginet.Units.Filter.LowPassFilter" />
+		  <DoubleOptionNode id="node_2" x="45.12999999999988" y="569.3749999999999" enabled="true" name="Low Cutoff Frequency" param="node_2_input">
+			  <Description>Lower frequency limit of the pass band (Hz). Frequencies below this value are attenuated. Must be less than the high cutoff frequency.</Description>
+			  <MinValue>-1.7976931348623157E+308</MinValue>
+			  <MaxValue>1.7976931348623157E+308</MaxValue>
+		  </DoubleOptionNode>
+	  </Nodes>
+	  <Connections>
+		  <Connection>
+			  <Source node="node_2" param="value" />
+			  <Target node="node_1" param="cutoff_freq" />
+		  </Connection>
+		  <Connection>
+			  <Source node="node_0" param="output" />
+			  <Target node="node_1" param="input" />
+		  </Connection>
+		  <Connection>
+			  <Source node="node_3" param="value" />
+			  <Target node="node_0" param="cutoff_freq" />
+		  </Connection>
+		  <Connection>
+			  <Source node="node_4" param="value" />
+			  <Target node="node_0" param="input" />
+		  </Connection>
+		  <Connection>
+			  <Source node="node_1" param="output" />
+			  <Target node="node_5" param="value" />
+		  </Connection>
+	  </Connections>
+  </Compound>
+</Imaginet>

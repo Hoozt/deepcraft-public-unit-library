@@ -1,0 +1,59 @@
+﻿<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<Imaginet version="2.0.0.0">
+ 	<Unit name="Imaginet.Units.Common.RotateIMU">
+    <DisplayName>Rotate IMU</DisplayName>
+    <DisplayPath>/Signal Processing/Sensor Packages/IMU</DisplayPath>
+	
+    <Description>
+		<Header>Description</Header>
+		Rotate IMU (Inertial Measurement Unit) sensor data by applying the same 3D rotation to both accelerometer and gyroscope readings.
+		
+		This unit performs a coordinated 3D rotation transformation on IMU data containing two types of sensors. It applies the same rotation matrix to all sensor readings, ensuring that accelerometer and gyroscope measurements remain properly aligned after rotation. This is essential when correcting for device mounting orientation or aligning sensor coordinate frames.
+		
+		The input must have shape [2, 3], where:
+		- First row (index 0): First sensor readings (e.g., accelerometer x, y, z)
+		- Second row (index 1): Second sensor readings (e.g., gyroscope x, y, z)
+		
+		The rotation is defined by an angle in degrees and an axis index, following the right-hand rule:
+		- Index 0 (x-axis): Rotation around the x-axis (affects y and z coordinates)
+		- Index 1 (y-axis): Rotation around the y-axis (affects x and z coordinates)
+		- Index 2 (z-axis): Rotation around the z-axis (affects x and y coordinates)
+		
+		Both sensor vectors are rotated identically using the same rotation matrix, maintaining their relative orientation. Positive rotation angles follow counter-clockwise rotation when looking along the positive axis direction toward the origin.
+		
+		Supports float32 data type only.
+
+		<Header>Usage</Header>
+		Use the Rotate IMU unit to correct IMU sensor orientation, compensate for device mounting angles, or align sensor coordinate frames to a reference orientation in motion tracking and inertial navigation systems.
+	</Description>
+	
+    <Parameters>
+    	<InputSocket name="input" pipe="data" description="Input IMU data with shape [2, 3]. First row contains the first sensor readings (e.g., accelerometer), second row contains the second sensor readings (e.g., gyroscope). Supports float32 data type only." />
+        <Int32Option name="rotation_deg" text="Rotation (Degrees)" description="Rotation angle in degrees applied to both sensor vectors. Positive values rotate counter-clockwise when viewed along the positive axis direction. The angle is automatically normalized to [0, 360) degrees." default="0"/>
+        <Int32Option name="index" min="0" max="2" ui="textbox" text="Index" description="Axis of rotation: 0 for x-axis, 1 for y-axis, 2 for z-axis. The same rotation is applied to both sensor vectors."/>
+	    <Handle name="rotation_matrix" size="36" description="Internal storage for the 3x3 rotation matrix (9 float32 values = 36 bytes)."/>
+        <OutputSocket name="output" pipe="data" type="input.type" shape="input.shape" description="Rotated IMU data with shape [2, 3]. Both sensor vectors are rotated identically. Has the same shape and data type as the input." />
+	    <Expression name="count" value="input.shape.flat" description="Total number of elements in the input tensor (always 6 for valid [2,3] input)." />
+    </Parameters>
+	
+    <Contracts>
+        <Assert test="input.shape.size(0) == 3" error="Rotate IMU requires a [2,3] matrix." />
+		<Assert test="input.shape.size(1) == 2" error="Rotate IMU requires a [2,3] matrix." />
+        <Assert test="index &lt; 3" error="Index must be 0, 1, or 2." />
+	    <Assert test="index &gt; -1 " error="Index must be 0, 1, or 2." />
+    </Contracts>
+	
+	<Init returnStatus="true">
+    	<Implementation language="C" fragment="rotateIMU.h:rotate_imu_init_f32" call="rotate_imu_init_f32(rotation_matrix, rotation_deg, index)">
+    		<Conditional value="input.type == System.Float32" />
+    	</Implementation>
+	</Init>
+	
+    <Implementations>
+        <Implementation language="C" fragment="rotateIMU.h:rotate_imu_f32" call="rotate_imu_f32(input, rotation_matrix, output)">	 
+        	<Conditional value="input.type == System.Float32" />
+        </Implementation>
+    </Implementations>
+	
+    </Unit>
+</Imaginet>

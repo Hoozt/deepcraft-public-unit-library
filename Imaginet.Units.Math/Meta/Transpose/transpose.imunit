@@ -4,14 +4,22 @@
 		<DisplayName>Transpose</DisplayName>
 		<DisplayPath>/Math/Slicing and Shaping</DisplayPath>
 		<Description>
-			The transpose function reorients a 2D matrix by reflecting its elements across the main diagonal, such that the element at position (i,j) in the original matrix moves to position (j,i) in the transposed matrix.
+			<Header>Description</Header>
+			Flip a 2D matrix by swapping its rows and columns, reflecting elements across the main diagonal.
+			
+			This unit performs a matrix transpose operation, where each element at position (i,j) in the input matrix is moved to position (j,i) in the output matrix. Rows become columns and columns become rows. For a matrix with shape [m,n], the transposed output will have shape [n,m].
+			
+			Currently supports float32 data type and requires the input to be 2-dimensional.
+
+			<Header>Usage</Header>
+			Use the Transpose unit when you need to swap the dimensions of a 2D tensor, such as converting between row-major and column-major layouts or preparing data for operations that expect a specific dimension order.
 		</Description>
 
 		<Parameters>
-			<InputSocket name="input" pipe="data" />
-			<Expression name="rows" value="input.shape.size(1)" />
-			<Expression name="cols" value="input.shape.size(0)" />
-			<OutputSocket name="output" pipe="data" type="input.type" shape="input.shape.replace(0,rows).replace(1,cols)" description="Output buffer. If the input has input shape (i,j), the output shap is (j,i)."/>
+			<InputSocket name="input" pipe="data" description="Input 2D tensor to be transposed. Supports float32 data type only." />
+			<Expression name="rows" value="input.shape.size(1)" description="Number of rows in the output (equals number of columns in the input)." />
+			<Expression name="cols" value="input.shape.size(0)" description="Number of columns in the output (equals number of rows in the input)." />
+			<OutputSocket name="output" pipe="data" type="input.type" shape="input.shape.replace(0,rows).replace(1,cols)" description="Output transposed tensor. For input shape [i,j], the output shape is [j,i] with rows and columns swapped."/>
 		</Parameters>
 
 		<Contracts>

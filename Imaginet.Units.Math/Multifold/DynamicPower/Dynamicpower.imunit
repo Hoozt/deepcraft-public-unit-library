@@ -3,12 +3,22 @@
   <Unit name="Imaginet.Units.Math.DynamicPower">
     <DisplayName>Dynamic Power</DisplayName>
     <DisplayPath>/Math/Multi-Tensor Operations</DisplayPath>
-    <Description>This function computes element-wise powers of an input tensor using a streamable exponent value.</Description>
+    <Description>
+			<Header>Description</Header>
+			Raise each element to a power specified by a runtime tensor value, computing x^exponent element-wise with a dynamic exponent.
+			
+			This unit performs element-wise exponentiation where the exponent comes from another tensor input rather than a fixed parameter. This allows the exponent to be computed dynamically during model execution. The exponent tensor must contain exactly one element (shape [1]), and this value is applied uniformly to all elements in the input tensor.
+			
+			Currently supports float32 data type. The tensor shape is preserved during computation.
+
+			<Header>Usage</Header>
+			Use the Dynamic Power unit when the exponent needs to be computed at runtime from data rather than being a fixed constant in the model.
+		</Description>
     <Parameters>
-      <InputSocket name="input" pipe="data" />
-	  <InputSocket name="exponent" pipe="data" description="The exponent to power the input by."/>
-      <OutputSocket name="output" pipe="data" type="input.type" shape="input.shape" description="Output buffer. It will have the same shape as the input."/>
-      <Expression name="count" value="input.shape.flat" description="Number of elements in input" />
+      <InputSocket name="input" pipe="data" description="Input tensor to be raised to a power. Supports float32 data type only." />
+	  <InputSocket name="exponent" pipe="data" description="Exponent tensor containing a single value. Must have shape [1]. This value will be applied to all elements of the input."/>
+      <OutputSocket name="output" pipe="data" type="input.type" shape="input.shape" description="Output tensor containing the computed power values. Has the same shape and data type as the input."/>
+      <Expression name="count" value="input.shape.flat" description="Total number of elements in the input tensor (computed from flattened shape)." />
     </Parameters>
 
 	<Contracts>

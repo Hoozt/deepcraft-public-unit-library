@@ -5,23 +5,29 @@
 		<DisplayPath>/Annotation</DisplayPath>
 
 		<Description>
-			Set name on dimensions and/or attach labels to a dimension.
+			<Header>Description</Header>
+			Annotate tensor dimensions with semantic names and labels, providing human-readable identifiers for axes and their individual indices.
+			
+			This unit adds metadata to tensor dimensions without modifying the actual data or shape. It allows you to assign names to axes (e.g., "time", "channels", "features") and labels to individual indices within each axis (e.g., "x", "y", "z" for a 3-element spatial dimension). This metadata improves code readability, aids in debugging, and provides documentation for what each dimension represents.
+
+			<Header>Usage</Header>
+			Use the Labels unit when you need to document the meaning of tensor dimensions.
 		</Description>
 
 		<Parameters>
-			<InputSocket name="input" text="Input" />
+			<InputSocket name="input" text="Input" description="Input tensor to be annotated with dimension names and labels. Any data type and shape supported." />
 
-			<ReturnSocket name="output" text="Output" />
+			<ReturnSocket name="output" text="Output" description="Output tensor with annotated dimension metadata. Contains the same data and shape as the input, with added semantic labels." />
 
 			<StringOption
 				name="axis_names"
 				text="Axis Names"
-			  description="Comma separated list of axis names. Should match the tensor rank" />
+			  description="Comma-separated list of names for each axis. Must match the tensor rank. Example for rank 3 tensor: 'time,channels,features'." />
 
 			<StringOption
 				name="axis_labels"
 				text="Axis Labels"
-				description="Axis labels. One parentheses group of label for each tensor rank. Example shape [3,2,2] would be described as {x0,x1,x2},{y0,y1},{z0,z1}" />
+				description="Labels for individual indices within each axis. Specify one parentheses group per dimension, with each group containing comma-separated labels. Example for shape [3,2,2]: '{x0,x1,x2},{y0,y1},{z0,z1}'." />
 		</Parameters>
 						
 		<Implementations>

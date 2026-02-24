@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Imaginet version="2.0.0.0">
+  <Unit name="Imaginet.Units.Signal.DrawBox">
+    <DisplayName>Draw Box</DisplayName>
+    <DisplayPath>/Image Processing/Image Manipulation</DisplayPath>
+    <Description>
+		<Header>Description</Header>
+		Draw a rectangular box on an image using two corner points specified with normalized coordinates.
+		
+		This unit draws a rectangular outline or filled box by specifying two opposite corner coordinates (x1,y1) and (x2,y2) in normalized coordinates (0.0-1.0). The unit automatically determines which corners form the rectangle regardless of ordering. Box outline thickness and color are configurable, with an option to fill the interior.
+		
+		Input is an image tensor [H,W] or [H,W,C]. Output is the same image with the drawn box overlaid.
+		
+		Supports float32 data type only.
+
+		<Header>Usage</Header>
+		Use the Draw Box unit to mark regions of interest, create visual boundaries, highlight areas, or annotate images with rectangular overlays.
+	</Description>
+
+    <Parameters>
+      <InputSocket name="image" pipe="data" description="Input image tensor with shape [height, width] for grayscale or [height, width, channels] for color images. This image will be modified with the drawn box. Supports float32 data type only." />
+      
+      <!-- Image dimensions -->
+      <Expression name="channels" value="image.shape.count == 2 ? 1 : image.shape.size(-3)" description="Number of channels in the input image (1 for grayscale, 3 for RGB)." />
+      <Expression name="index_offset" value="channels == 3 ? 1 : 0" description="Internal offset for dimension indexing based on channel count." />
+      <Expression name="image_height" value="image.shape.size(1+index_offset)" description="Height of the input image extracted from tensor shape." />
+      <Expression name="image_width" value="image.shape.size(0+index_offset)" description="Width of the input image extracted from tensor shape." />
+      
+      <!-- Drawing coordinates (normalized 0-1) -->
+      <DoubleOption name="x1" text="X1 Coordinate" description="Normalized horizontal coordinate (0.0-1.0) of first corner, where 0.0 is left edge and 1.0 is right edge." default="0.1" min="0.0" max="1.0" />
+      <DoubleOption name="y1" text="Y1 Coordinate" description="Normalized vertical coordinate (0.0-1.0) of first corner, where 0.0 is top edge and 1.0 is bottom edge." default="0.1" min="0.0" max="1.0" />
+      <DoubleOption name="x2" text="X2 Coordinate" description="Normalized horizontal coordinate (0.0-1.0) of opposite corner. Can be less than or greater than x1." default="0.9" min="0.0" max="1.0" />
+      <DoubleOption name="y2" text="Y2 Coordinate" description="Normalized vertical coordinate (0.0-1.0) of opposite corner. Can be less than or greater than y1." default="0.9" min="0.0" max="1.0" />
+      
+      <!-- Drawing options -->
+      <Int32Option name="thickness" text="Box Thickness" description="Thickness of box outline in pixels (1-10). Thicker lines are more visible but can obscure details. Ignored if fill is enabled." default="2" min="1" max="10" />
+      
+      <!-- Color options -->
+      <Int32Option name="color" text="Color" description="Color for the box outline or fill. Choose a color that contrasts with the image content for visibility." default="0" ui="dropdown">
+        <OneOf>
+          <Item text="Black">0</Item>
+          <Item text="White">1</Item>
+          <Item text="Blue Dark">2</Item>
+          <Item text="Orange">3</Item>
+          <Item text="Teal">4</Item>
+          <Item text="Gray Cool">5</Item>
+          <Item text="Purple">6</Item>
+          <Item text="Green Light">7</Item>
+          <Item text="Red">8</Item>
+          <Item text="Gray Warm">9</Item>
+          <Item text="Indigo">10</Item>
+          <Item text="Light Orange">11</Item>
+        </OneOf>
+      </Int32Option>
+      
+      <!-- Fill option -->
+      <BoolOption name="fill" text="Fill Box" description="If enabled, fills the entire box interior with the selected color. If disabled, draws only the outline." default="false" />
+
+      <OutputSocket name="output" pipe="data" type="image.type" shape="image.shape" description="Output image with the rectangular box drawn at the specified coordinates. Has the same shape and data type as the input image." />
+    </Parameters>
+
+    <Contracts>
+      <Assert test="image.shape.count >= 2" error="Image input must be at least 2D (HxW or HxWxC)." />
+      <Assert test="thickness >= 1" error="Thickness must be at least 1 pixel." />
+      <Assert test="x1 >= 0.0 &amp;&amp; x1 &lt;= 1.0" error="X1 coordinate must be between 0.0 and 1.0." />
+      <Assert test="y1 >= 0.0 &amp;&amp; y1 &lt;= 1.0" error="Y1 coordinate must be between 0.0 and 1.0." />
+      <Assert test="x2 >= 0.0 &amp;&amp; x2 &lt;= 1.0" error="X2 coordinate must be between 0.0 and 1.0." />
+      <Assert test="y2 >= 0.0 &amp;&amp; y2 &lt;= 1.0" error="Y2 coordinate must be between 0.0 and 1.0." />
+    </Contracts>
+
+    <Implementations>
+      <Implementation language="C" fragment="draw_box.h:draw_box_f32" 
+                      call="draw_box_f32(image, output, image_height, image_width, channels, x1, y1, x2, y2, thickness, color, fill)">
+        <Conditional value="image.type == System.Float32" />
+      </Implementation>
+    </Implementations>
+  </Unit>
+</Imaginet>

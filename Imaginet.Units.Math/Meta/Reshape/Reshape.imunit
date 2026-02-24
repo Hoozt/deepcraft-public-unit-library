@@ -5,35 +5,34 @@
 		<DisplayPath>/Math/Slicing and Shaping</DisplayPath>
 
 		<Description>
-			The reshape layer is used to reshape the output of the previous layer into a different shape.
-			It is typically used as a first layer to reshape the preprocessor input into a shape that represents the data in a better way.
+			<Header>Description</Header>
+			Reorganize tensor data into a different dimensional structure without changing the underlying data or total number of elements.
+			
+			This unit reinterprets the linear sequence of tensor elements as having a different shape. The total number of elements must remain constant between input and output shapes. Reshaping is a metadata operation that changes how the data is indexed and accessed but does not move or modify the actual values.
+			
+			Common use cases include converting flat preprocessor inputs into multi-dimensional structures, preparing data for operations that expect specific tensor ranks, or reorganizing data to group related features together.
 
-			<Header>Example</Header>
-			The preprocessor input is always flat (One-dimensional).
-			If our preprocessor input contains 3 columns of accelerometer data followed by 3 columns of gyroscope data the preprocessor input will be 6 (2*3).
-
-			In this case we might want to group the accelerometer data and the gyroscope data into two separate columns.
-			This way we will be able process them separately. Adding a reshape layer as the first layer with an input of 2,3 achieves this.
-
+			<Header>Usage</Header>
+			Use the Reshape unit to reorganize flat sensor data into structured dimensions. For example, a flat input of 6 values containing 3 accelerometer readings followed by 3 gyroscope readings can be reshaped to [2,3] to separate the two sensor types into distinct rows.
 		</Description>
 
 		<Parameters>
-			<InputSocket name="input" text="Input" />
+			<InputSocket name="input" text="Input" description="Input tensor to be reshaped. Any data type and shape supported." />
 
-			<ShapeOption name="shape" text="Shape" default="[3]" />
+			<ShapeOption name="shape" text="Shape" default="[3]" description="Target shape for the output tensor. Must contain the same total number of elements as the input shape." />
 
-			<ReturnSocket name="output" text="Output" />
+			<ReturnSocket name="output" text="Output" description="Output tensor with the specified shape. Contains the same data as the input, reorganized into the new dimensional structure." />
 
 
 			<StringOption
 				name="axis_names"
 				text="Axis Names (Deprecated)"
-				description="Comma separated list of axis names. Should match the tensor rank. Note! This property is deprecated, use unit 'Labels' instead." />
+				description="Deprecated. Use the Labels unit instead. Comma-separated list of axis names matching the tensor rank." />
 
 			<StringOption
 				name="axis_labels"
 				text="Axis Labels (Deprecated)"
-				description="Axis labels. One parentheses group of label for each tensor rank. Example shape [3,2,2] would be described as (x0,x1,x2),(y0,y1),(z0,z1). Note! This property is deprecated, use unit 'Labels' instead." />
+				description="Deprecated. Use the Labels unit instead. Axis labels with one parentheses group per dimension." />
 
 
 		</Parameters>

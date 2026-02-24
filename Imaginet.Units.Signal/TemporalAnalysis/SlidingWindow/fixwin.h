@@ -102,3 +102,21 @@ static inline int fixwin_can_dequeue(void* restrict handle, int count)
 	return IPWIN_RET_SUCCESS;
 }
 #pragma IMAGINET_FRAGMENT_END
+
+
+// Availability check: can the queue accept 'count' items?
+#pragma IMAGINET_FRAGMENT_BEGIN "fixwin_can_enqueue"
+
+static inline int fixwin_can_enqueue(void* restrict handle, int count)
+{
+	fixwin_t* fep = (fixwin_t*)handle;
+
+	const int size = count * fep->input_size;
+	int free = cbuffer_get_free(&fep->data_buffer);
+
+	if (size <= free)
+		return IPWIN_RET_SUCCESS;
+
+	return IPWIN_RET_NODATA;
+}
+#pragma IMAGINET_FRAGMENT_END

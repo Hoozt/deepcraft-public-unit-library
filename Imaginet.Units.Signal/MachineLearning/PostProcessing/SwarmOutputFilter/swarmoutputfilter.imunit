@@ -1,0 +1,41 @@
+<?xml version = "1.0" encoding="utf-8" ?>
+<Imaginet>
+	<Unit name="Imaginet.Units.Filter.SwarmOutputFilter">
+		<DisplayName>Swarm Output Filter</DisplayName>
+		<DisplayPath>/Machine Learning/Postprocessing</DisplayPath>
+		<Description>
+			<Header>Description</Header>
+			Activate output when multiple confidence peaks occur within a specified time window, reducing false positives from isolated detections.
+			
+			This filter counts how many times any class confidence exceeds the threshold within a rolling time window (filter_length samples). When num_triggers is reached for the same class, the output activates (1.0). A cooloff period prevents consecutive high-confidence samples from counting as multiple triggers. The filter resets if a different class triggers or if the time window expires.
+			
+			Input is typically a classification confidence vector where index 0 represents "no detection" and is skipped. Output is a scalar (0.0 or 1.0) indicating filter activation.
+
+			<Header>Usage</Header>
+			Use the Swarm Output Filter to confirm repeated detections before triggering actions, such as requiring multiple gesture detections within a time window before executing a command.
+		</Description>
+		<Parameters>
+			<InputSocket name="input" description="Input classification confidence vector where each element represents a class confidence score. Index 0 (typically 'no detection') is skipped. Any shape is supported."/>
+			<OutputSocket name="output" type="System.Float32" shape="System.Shape(1)" description="Scalar output (shape [1]). Value is 1.0 when the filter activates (num_triggers reached), otherwise 0.0." />
+		
+			<DoubleOption name="confidence_threshold" text="Confidence Threshold" description="Minimum confidence value (0.0-1.0) for a detection to count as a trigger. Higher values require stronger confidence." />
+			<Int32Option name="num_triggers" text="Triggers" description="Number of triggers required to activate the filter. Higher values reduce sensitivity to spurious detections. Typical values: 2-5." />
+			<Int32Option name="filter_length" text="Filter Length" description="Time window size (in number of input samples) within which triggers are counted. If the window expires without reaching num_triggers, the count resets." />
+			<Int32Option name="filter_cooloff" text="Filter Cooloff" description="Cooloff period (in number of input samples) after a trigger before another can be counted. Prevents consecutive high-confidence frames from counting as multiple triggers (debouncing)." />
+			
+			<Expression name="count" value="input.shape.flat" description="Total number of elements in the input vector (number of classes including index 0)." />
+		</Parameters>
+
+		<Contracts>
+			<Assert test="confidence_threshold >= 0" error="Confidence threshold needs to be in the range [0.0, 1.0]." />
+			<Assert test="confidence_threshold &lt;= 1" error="Confidence threshold needs to be in the range [0.0, 1.0]." />
+			<Assert test="num_triggers >= 0" error="Triggers needs to be positive." />
+			<Assert test="filter_length >= 0" error="Filter Length needs to be positive." />
+			<Assert test="filter_cooloff >= 0" error="Filter Cooloff needs to be positive." />
+		</Contracts>
+
+		<Implementations>
+			<Implementation language="C" fragment="swarm_output_filter.h:swarm_output_filter_f32" call="swarm_output_filter_f32(input, output, count, confidence_threshold, num_triggers, filter_length, filter_cooloff)"/>
+		</Implementations>
+	</Unit>
+</Imaginet>

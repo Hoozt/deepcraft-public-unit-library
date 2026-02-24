@@ -5,32 +5,39 @@
 		<DisplayPath>/Math/Slicing and Shaping</DisplayPath>
 
 		<Description>
-			Take elements from an array along an axis.
+			<Header>Description</Header>
+			Extract a single slice at a specific index position along a specified axis, reducing the tensor by one dimension.
 			
+			This unit selects elements at a particular index along the chosen axis, effectively taking a cross-section of the tensor. The output shape is the same as the input shape with the selected axis removed. Negative indices are supported and count from the end (e.g., -1 is the last element).
+			
+			Supports float32, integer types (int8, int16, int32, uint8, uint16, uint32), and fixed-point formats (Q7, Q15, Q31). Requires input to have at least 2 dimensions.
+
+			<Header>Usage</Header>
+			Use the Take unit when you need to extract a specific slice from a dimension, such as selecting a particular time step or a specific channel from multi-channel data.
+
 			<Header>Python implementation</Header>
 			<Inline fragment="take.py:take" language="Python" />
 		</Description>
 
 		<Parameters>
-			<InputSocket name="input" />
+			<InputSocket name="input" description="Input tensor. Supports float32, int8, int16, int32, uint8, uint16, uint32, Q7, Q15, and Q31 data types. Must have at least 2 dimensions." />
 			<Int32Option name="axis" default="-1" text="Axis" >
 				<Description>
-					Axis along which a given index is selected.
-					Positive numbers are enumerated from right (0) to left.
+					Axis along which the index is selected. Positive numbers are enumerated from right (0) to left. 
 					Negative numbers are enumerated from left to right.
 				</Description>
 			</Int32Option>
-			<Int32Option name="index" default="-1" text="Index" description="Index in axis">
+			<Int32Option name="index" default="-1" text="Index" description="Index position to extract from the specified axis. Negative indices count from the end (e.g., -1 is the last element).">
 				<Description>
-					Negative numbers are enumerated in reverse order. e.g -1 is the last index.
+					Index position to extract from the specified axis. Negative indices count from the end (e.g., -1 is the last element).
 				</Description>
 			</Int32Option>
-			<OutputSocket name="output" shape="input.shape.remove(axis)" type="input.type" />
+			<OutputSocket name="output" shape="input.shape.remove(axis)" type="input.type" description="Output tensor containing the extracted slice. Has the same shape as input with the selected axis removed." />
 
-			<Expression name="d0" value="input.shape.step(axis)" />
-			<Expression name="d1" value="input.shape.size(axis)" />
-			<Expression name="d2" value="input.shape.slot(axis)" />
-			<Expression name="real_index" value="index % d1" />
+			<Expression name="d0" value="input.shape.step(axis)" description="Internal parameter: Step size for iterating along the axis." />
+			<Expression name="d1" value="input.shape.size(axis)" description="Internal parameter: Size of the axis dimension." />
+			<Expression name="d2" value="input.shape.slot(axis)" description="Internal parameter: Number of slots in the operation." />
+			<Expression name="real_index" value="index % d1" description="Internal parameter: Normalized index accounting for negative indexing." />
 		</Parameters>
 
 		<Contracts>

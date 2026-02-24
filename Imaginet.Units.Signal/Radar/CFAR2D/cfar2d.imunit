@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<Imaginet version="2.0.0.0">
+  <Unit name="Imaginet.Units.Signal.CFAR2D">
+    <DisplayName>CFAR 2D</DisplayName>
+    <DisplayPath>/Signal Processing/Sensor Packages/Radar</DisplayPath>
+
+	<Description>
+		<Header>Description</Header>
+		Detect radar targets using a two-dimensional Cell-Averaging Constant False Alarm Rate (CFAR) algorithm that analyzes both range and Doppler dimensions simultaneously.
+		
+		This unit implements a 2D CFAR detection algorithm that identifies targets in radar data by comparing each cell's signal strength to an adaptive threshold computed from a two-dimensional grid of surrounding reference cells. Unlike the 1D version, this algorithm analyzes the range-Doppler map holistically, providing more robust detection in complex scenarios.
+		
+		The input tensor must have shape [count_chirps, count_samples, count_antennas]. For each cell under test (CUT), the algorithm:
+		1. Computes a noise estimate by averaging reference cells in a 2D rectangular window (excluding gap cells).
+		2. Calculates a detection threshold by scaling the noise estimate with a bias factor.
+		3. Identifies cells exceeding the threshold as potential targets.
+		4. Returns the top N targets (user-specified) with their range and Doppler indices, plus optional amplitudes.
+		
+		Antenna data can be combined using either average or maximum mode. Separate gap cell parameters for range and Doppler dimensions prevent target energy from contaminating the noise estimate. The 2D approach provides superior rejection of clutter and interference compared to sequential 1D processing.
+		
+		Supports float32 data type only.
+
+		<Header>Usage</Header>
+		Use the CFAR 2D unit in advanced radar signal processing pipelines when you need simultaneous range-Doppler target detection with superior clutter rejection and constant false alarm rate maintenance.
+	</Description>
+
+    <Parameters>
+      <InputSocket name="input" pipe="data" description="Input radar data tensor with shape [count_chirps, count_samples, count_antennas]. Supports float32 data type only." />
+      <Expression name="count" value="input.shape.flat" description="Total number of elements in the input tensor." />
+	  <Expression name="count_antennas" value="input.shape.size(0)" description="Number of antenna channels in the radar array." />
+	  <Expression name="count_samples" value="input.shape.size(1)" description="Number of range samples per chirp." />
+	  <Expression name="count_chirps" value="input.shape.size(2)" description="Number of chirps in the radar frame." />
+	  <Int32Option name="num_targets" ui="textbox" text="Number of targets" description="Maximum number of targets to detect and output (1-3). The algorithm returns the strongest targets based on signal strength." default="1">
+ 		<OneOf>
+		<Item text="1">1</Item>
+		<Item text="2">2</Item>
+		<Item text="3">3</Item>
+	</OneOf>
+	  </Int32Option>
+
+	   <Int32Option name="antenna_mode" ui="textbox" text="Antenna Mode" description="Specifies how multi-antenna data is combined. Average mode computes the mean across antennas, Max mode selects the strongest antenna signal.">
+ 		<OneOf>
+		<Item text="Average">0</Item>
+		<Item text="Max">1</Item>
+	</OneOf>
+	   </Int32Option>
+
+	  <Int32Option name="window_size_range" default="8" ui="textbox" text="Reference Cells Range" description="Number of reference cells on each side of the CUT in the range dimension. Larger values provide more robust noise estimation but reduce spatial resolution." />
+	  <Int32Option name="window_size_doppler" default="8" ui="textbox" text="Reference Cells Doppler" description="Number of reference cells on each side of the CUT in the Doppler dimension. Larger values provide more robust noise estimation but reduce velocity resolution." />
+	  <Int32Option name="gap_cells_range" default="2" ui="textbox" text="Gap Cells Range" description="Number of guard cells on each side of the CUT in the range dimension. Prevents target energy from contaminating the noise estimate." />
+	  <Int32Option name="gap_cells_doppler" default="2" ui="textbox" text="Gap Cells Doppler" description="Number of guard cells on each side of the CUT in the Doppler dimension. Prevents target energy from contaminating the noise estimate." />
+	  <DoubleOption name="bias" default="1.5" ui="textbox" text="Bias" description="Scaling factor applied to the noise estimate to compute the detection threshold. Higher values reduce false alarms but may miss weak targets." />
+	  <BoolOption name="output_amplitude" text="Output Amplitude" description="If true, outputs range index, Doppler index, and amplitude for each target. If false, outputs only range and Doppler indices." default="false" />
+
+      <OutputSocket name="output" pipe="data" type="input.type" shape="System.Shape((output_amplitude ? 3 : 2)*num_targets)" description="Output tensor containing detected target information. Format: [range1, doppler1, amplitude1, range2, doppler2, amplitude2, ...] if output_amplitude is true, or [range1, doppler1, range2, doppler2, ...] if false." />
+    </Parameters>
+
+	<Contracts>
+		<Assert test="bias >= 0" error="Bias needs to be positive." />
+		<Assert test="window_size_range >= 0" error="Reference Cells Range needs to be positive." />
+		<Assert test="window_size_doppler >= 0" error="Reference Cells Doppler needs to be positive." />
+		<Assert test="gap_cells_range >= 0" error="Gap Cells Range needs to be positive." />
+		<Assert test="gap_cells_doppler >= 0" error="Gap Cells Doppler needs to be positive." />
+		<Assert test="input.shape.count == 3" error="Unexpected input tensor format ({output.shape}). Expect tensor to have shape [Chirps, Samples, Antennas]" />
+	</Contracts>
+
+	<Implementations>
+      <Implementation language="C" fragment="cfar2d.h:cfar_2d_f32" call="cfar_2d_f32(input, output, antenna_mode, window_size_range, window_size_doppler, gap_cells_range, gap_cells_doppler, bias, num_targets, count_antennas, count_samples, count_chirps, output_amplitude)">
+        <Conditional value="input.type == System.Float32" />
+      </Implementation>
+    </Implementations>
+
+	</Unit>
+</Imaginet>

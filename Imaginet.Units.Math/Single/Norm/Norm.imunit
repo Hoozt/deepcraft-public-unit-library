@@ -6,28 +6,35 @@
 		<DisplayPath>/Math/Tensor Reductions</DisplayPath>
 
 		<Description>
-			Compute the Frobenius norm along the given axis.
+			<Header>Description</Header>
+			Calculate the Frobenius norm (L2 norm) along a specified axis, computing the square root of the sum of squared values.
+			
+			This unit computes the Euclidean length of vectors along the chosen axis by summing the squares of all elements and taking the square root. For each slice along the specified axis, it calculates sqrt(x₁² + x₂² + ... + xₙ²). The output shape is the same as the input shape with the selected axis removed.
+			
+			Supports float32 and fixed-point formats (Q15, Q31). Optional CMSIS optimizations are available for improved performance on ARM-based embedded systems, including specialized implementations for complex numbers (when axis size is 2).
+
+			<Header>Usage</Header>
+			Use the Norm unit when you need to compute vector magnitudes or normalize data by calculating the Euclidean length of vectors.
 
 			<Header>Python implementation</Header>
 			<Inline fragment="norm.py:norm" language="Python" />
-
 		</Description>
 
 		<Parameters>
-			<InputSocket name="input" />
-			<Int32Option name="axis" min="0" max="9" ui="textbox" text="Axis" description="Axis along which to compute the vector norms. Enumerated from right to left." />
+			<InputSocket name="input" description="Input tensor to compute norms from. Supports float32 and fixed-point types (Q15, Q31). Must have at least 2 dimensions." />
+			<Int32Option name="axis" min="0" max="9" ui="textbox" text="Axis" description="Axis along which to compute vector norms. Axes are enumerated from right to left." />
 
-			<Expression name="d0" value="input.shape.step(axis)" />
-			<Expression name="d1" value="input.shape.size(axis)" />
-			<Expression name="d2" value="input.shape.slot(axis)" />
+			<Expression name="d0" value="input.shape.step(axis)" description="Step size for iterating along the reduction axis." />
+			<Expression name="d1" value="input.shape.size(axis)" description="Size of the axis dimension being reduced (number of elements to square and sum)." />
+			<Expression name="d2" value="input.shape.slot(axis)" description="Number of slots (iterations) in the reduction operation." />
 
-			<Int32Option name="shift" text="Shift" default="0" />
+			<Int32Option name="shift" text="Shift" default="0" description="Additional bit shift applied to the output for fixed-point arithmetic." />
 
-			<Expression name="output_shift" value="(d1.sqrt).log2.ceil + shift" />
+			<Expression name="output_shift" value="(d1.sqrt).log2.ceil + shift" description="Computed output shift value for fixed-point operations based on axis size." />
 			
-			<OutputSocket name="output" shape="input.shape.remove(axis)" type="input.type" shift="input.shift + output_shift" description="Output buffer. It will have the same shape as the input but with the selected axis reduced."/>
+			<OutputSocket name="output" shape="input.shape.remove(axis)" type="input.type" shift="input.shift + output_shift" description="Output tensor containing norm values. Has the same shape as input with the selected axis removed."/>
 
-			<BoolOption name="global_use_cmsis" text="Use CMSIS" default="false" global="true"/>
+			<BoolOption name="global_use_cmsis" text="Use CMSIS" default="false" global="true" description="Enable CMSIS-optimized implementations for ARM Cortex processors. Improves performance on embedded systems."/>
 			
 		</Parameters>
 

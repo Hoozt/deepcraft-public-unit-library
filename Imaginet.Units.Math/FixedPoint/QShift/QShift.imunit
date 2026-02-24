@@ -5,16 +5,24 @@
 		<DisplayPath>/Utilities/Quantization</DisplayPath>
 		
 		<Description>
-			Moves the binary point without changing the numeric value other than saturation and decimal truncation.
+			<Header>Description</Header>
+			Adjust the position of the binary point in fixed-point numbers, effectively changing the scale without altering the underlying bit pattern except for saturation and truncation.
+			
+			This unit shifts the binary point in fixed-point arithmetic, allowing you to change the Q-format of the data. Positive shift values move the binary point to the right, while negative values move it to the left.
+			
+			Supports Q7, Q15, and Q31 fixed-point formats. The tensor shape is preserved, and the output maintains the same Q-format type with an adjusted shift value.
+
+			<Header>Usage</Header>
+			Use the Shift unit when you need to adjust the scale of fixed-point values to match the requirements of subsequent operations or to optimize dynamic range utilization.
 		</Description>
 
 		<Parameters>
-			<InputSocket name="input" />			
-			<Expression name="count" value="input.shape.flat()" />
+			<InputSocket name="input" description="Input tensor in fixed-point format. Supports Q7, Q15, and Q31 data types only." />			
+			<Expression name="count" value="input.shape.flat()" description="Total number of elements in the input tensor (computed from flattened shape)." />
 			<Int32Option 
 				name="shift" 
-			description="Number of positions to move the binary-faction-point. Positive to the right, negative to the left." />
-			<OutputSocket name="output" type="input.type" shape="input.shape" shift="input.shift + shift"/>			
+			description="Number of positions to move the binary point. Positive values shift right (decrease magnitude), negative values shift left (increase magnitude)." />
+			<OutputSocket name="output" type="input.type" shape="input.shape" shift="input.shift + shift" description="Output tensor with adjusted binary point position. Has the same shape and Q-format type as the input, but with modified shift value." />			
 		</Parameters>
 
 		<Contracts>

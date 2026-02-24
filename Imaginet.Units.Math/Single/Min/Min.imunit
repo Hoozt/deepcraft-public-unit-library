@@ -5,20 +5,28 @@
 		<DisplayPath>/Math/Tensor Reductions</DisplayPath>
 
 		<Description>
-			Computes the minimum value along an axis. Collapses the dimension of the selected axis.
+			<Header>Description</Header>
+			Find the minimum value along a specified axis, reducing the tensor by identifying the smallest element.
+			
+			This unit finds the minimum value along the chosen axis. For each slice along the specified axis, it identifies and returns the smallest value. The output shape is the same as the input shape with the selected axis removed.
+			
+			Supports float32 and fixed-point formats (Q7, Q15, Q31). Optional CMSIS optimizations are available for improved performance on ARM-based embedded systems.
+
+			<Header>Usage</Header>
+			Use the Min unit when you need to find the lowest values across a dimension, such as identifying minimum thresholds or detecting valleys in data.
 
 			<Header>Python implementation</Header>
 			<Inline fragment="min.py:min" language="Python" />
 		</Description>
 
 		<Parameters>
-			<InputSocket name="input" />
-			<Int32Option name="axis" min="0" max="9" ui="textbox" text="Axis" description="Axis along which the min operation is performed. Enumerated from right to left." />
-			<OutputSocket name="output" shape="input.shape.remove(axis)" type="input.type" description="Output buffer. It will have the same shape as the input but with the selected axis reduced."/>
-			<BoolOption name="global_use_cmsis" text="Use CMSIS" default="false" global="true"/>
-			<Expression name="step" value="input.shape.step(axis)" />
-			<Expression name="size" value="input.shape.size(axis)" />
-			<Expression name="slot" value="input.shape.slot(axis)" />
+			<InputSocket name="input" description="Input tensor to find minimum values from. Supports float32 and fixed-point types (Q7, Q15, Q31)." />
+			<Int32Option name="axis" min="0" max="9" ui="textbox" text="Axis" description="Axis along which to find minimum values. Axes are enumerated from right to left." />
+			<OutputSocket name="output" shape="input.shape.remove(axis)" type="input.type" description="Output tensor containing minimum values. Has the same shape as input with the selected axis removed."/>
+			<BoolOption name="global_use_cmsis" text="Use CMSIS" default="false" global="true" description="Enable CMSIS-optimized implementations for ARM Cortex processors. Improves performance on embedded systems."/>
+			<Expression name="step" value="input.shape.step(axis)" description="Step size for iterating along the reduction axis." />
+			<Expression name="size" value="input.shape.size(axis)" description="Size of the axis dimension being reduced (number of elements to compare)." />
+			<Expression name="slot" value="input.shape.slot(axis)" description="Number of slots (iterations) in the reduction operation." />
 		</Parameters>
 
 		<Contracts>

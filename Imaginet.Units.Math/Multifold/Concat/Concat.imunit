@@ -5,29 +5,38 @@
 		<DisplayPath>/Math/Slicing and Shaping</DisplayPath>
 
 		<Description>
-			Join a sequence of arrays along an existing axis.
+			<Header>Description</Header>
+			Join multiple tensors together along a specified axis, combining them into a single larger tensor.
+			
+			This unit stacks tensors end-to-end along the chosen axis dimension. All input tensors must have identical shapes except along the concatenation axis, where their sizes will be summed. For example, concatenating two tensors of shape [3,4] and [3,6] along axis 1 produces an output of shape [3,10].
+			
+			The operation preserves all dimensions except the concatenation axis, which grows to accommodate all inputs. Supports up to 2 input tensors with an optional second input.
 
-			The arrays must have the same shape, except in the dimension corresponding to axis.
+			<Header>Usage</Header>
+			Use the Concatenate unit when you need to combine multiple feature sets or merge outputs from parallel processing branches along a specific dimension.
+
+			<Header>Python implementation</Header>
+			<Inline fragment="concat.py:concat" language="Python" />
 		</Description>
 
 		<Parameters>
-			<InputSocket name="i0" text="Input 0" description="Input" />
-			<InputSocket name="i1" text="Input 1" description="Input (optional)" optional="true" />
+			<InputSocket name="i0" text="Input 0" description="First input tensor. Must have the same shape as other inputs except along the concatenation axis." />
+			<InputSocket name="i1" text="Input 1" description="Second input tensor (optional). Must have the same shape as the first input except along the concatenation axis." optional="true" />
 			
-			<Int32Option name="axis" min="0" max="9" ui="textbox" text="Axis" description="The axis along which the arrays will be joined." />
+			<Int32Option name="axis" min="0" max="9" ui="textbox" text="Axis" description="The axis dimension along which tensors will be joined. Axes are enumerated from right to left." />
 
-			<Expression name="size0" value="i0.shape.size(axis)" />
-			<Expression name="size1" value="i1 == null ? 0 : i1.shape.size(axis)" />
-			<Expression name="output_shape" value="i0.shape.replace(axis, size0 + size1)" />
+			<Expression name="size0" value="i0.shape.size(axis)" description="Size of the first input along the concatenation axis." />
+			<Expression name="size1" value="i1 == null ? 0 : i1.shape.size(axis)" description="Size of the second input along the concatenation axis (0 if not provided)." />
+			<Expression name="output_shape" value="i0.shape.replace(axis, size0 + size1)" description="Output shape with the concatenation axis size equal to the sum of input axis sizes." />
 
-			<Expression name="step" value="output_shape.step(axis)" />
-			<Expression name="size" value="output_shape.size(axis)" />
-			<Expression name="slot" value="output_shape.slot(axis)" />
+			<Expression name="step" value="output_shape.step(axis)" description="Step size for iterating along the concatenation axis." />
+			<Expression name="size" value="output_shape.size(axis)" description="Total size of the output along the concatenation axis." />
+			<Expression name="slot" value="output_shape.slot(axis)" description="Number of slots (iterations) needed for concatenation." />
 
-			<Expression name="bytes0" value="size0 * step * i0.type.size" />
-			<Expression name="bytes1" value="size1 * step * i0.type.size" />
+			<Expression name="bytes0" value="size0 * step * i0.type.size" description="Number of bytes to copy from the first input." />
+			<Expression name="bytes1" value="size1 * step * i0.type.size" description="Number of bytes to copy from the second input." />
 
-			<OutputSocket name="output" type="i0.type" shape="output_shape" text="Output" description="The concatenated array."/>
+			<OutputSocket name="output" type="i0.type" shape="output_shape" text="Output" description="Output tensor containing all inputs joined along the specified axis. The concatenation axis size equals the sum of all input axis sizes."/>
 		</Parameters>
 
 		<Contracts>

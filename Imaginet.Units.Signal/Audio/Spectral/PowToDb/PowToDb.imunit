@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Imaginet>
+
+	<Unit name="Imaginet.Units.Signal.PowToDb">
+		<DisplayName>Power to Decibel</DisplayName>
+		<DisplayPath>/Signal Processing/Frequency Domain</DisplayPath>
+
+		<Description>
+			<Header>Description</Header>
+			Convert power values to decibel scale using the formula 10 * log10(input / ref).
+			
+			This unit transforms power spectra (amplitude squared) into logarithmic decibel units in a numerically stable way. It applies a minimum threshold to prevent log of zero, computes the dB conversion, then applies dynamic range limiting by thresholding values below the peak by topdb amount.
+			
+			Supports float32 data type only.
+
+			<Header>Usage</Header>
+			Use the Power to Decibel unit to convert power spectrograms to perceptually-relevant dB scale for visualization and audio feature analysis.
+
+			<Header>Python implementation</Header>
+			<Inline fragment="power_to_db.py:power_to_db" language="Python" />
+		</Description>
+
+		<Parameters>
+			<InputSocket name="input" description="Input power values (amplitude squared). Supports float32 data type only." />
+			<DoubleOption name="ref" min="0" default="1" ui="textbox" text="Scale" description="Reference power level for dB calculation. Result is computed as 10 * log10(input / ref)." />
+			<DoubleOption name="amin" min="0" default="1e-10" ui="textbox" text="Minimum threshold" description="Minimum threshold to clip input and ref values, preventing log(0) numerical errors." />
+			<DoubleOption name="topdb" min="0"  default="80.0" ui="textbox" text="Output threshold" description="Dynamic range limit in dB. Output values are clipped to be within topdb below the maximum value." />
+			<OutputSocket name="output" type="input.type" shape="input.shape" description="Output in decibel units. Has the same shape and data type as input."/>
+			<Expression name="count" value="input.shape.flat" description="Total number of elements in the input tensor." />
+			<Expression name="beta" value="10.0 * Math.log10(Math.max(amin, ref))" description="Precomputed reference term for dB conversion." />
+		</Parameters>
+
+		<Implementations>
+			<Implementation language="Python" fragment="power_to_db.py:power_to_db" call="power_to_db(input, output, ref, amin, topdb)" />
+			<Implementation language="C" fragment="power_to_db.h:power_to_db_f32" call="power_to_db_f32(input, count, beta, amin, topdb, output)">
+				<Conditional value="input.type == System.Float32" />
+			</Implementation>
+		</Implementations>
+
+	</Unit>
+</Imaginet>

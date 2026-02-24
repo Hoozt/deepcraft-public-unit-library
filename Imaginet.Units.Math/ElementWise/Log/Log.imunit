@@ -6,29 +6,40 @@
 		<DisplayPath>/Math/Element Wise</DisplayPath>
 
 		<Description>
-			Compute logarithm, the logarithm is the inverse function to exponentiation.
+			<Header>Description</Header>
+			Calculate the logarithm element-wise, computing the inverse function of exponentiation.
+			
+			This unit performs element-wise logarithm computation with a configurable base. The logarithm transforms multiplicative relationships into additive ones, making it useful for various mathematical operations. When base is set to 0 (default), the natural logarithm (ln, base e) is computed. Common bases include e (natural log), 10 (common log), and 2 (binary log).
+			
+			The unit supports float32 for standard operations and fixed-point formats (Q15, Q31) with CMSIS optimizations for embedded systems. The tensor shape and dimensions are preserved during computation.
+
+			<Header>Usage</Header>
+			Use the Logarithm unit when you need to apply logarithmic scaling, such as converting power values to decibels or compressing dynamic range in signal processing.
 
 			<Image file="images/log.png" width="340" />
+
+			<Header>Python implementation</Header>
+			<Inline fragment="log.py:log" language="Python" />
 		</Description>
 
 		<Parameters>
-			<InputSocket name="input" />
-			<DoubleOption name="base" min="0" default="0" ui="textbox" text="Logarithm base" description="Base of the logarithm. If 0, natural base is used. Default 0." />
+			<InputSocket name="input" description="Input tensor for logarithm computation. Supports float32 and fixed-point types (Q15, Q31). Values must be positive."/>
+			<DoubleOption name="base" min="0" default="0" ui="textbox" text="Logarithm base" description="Base of the logarithm. If 0, natural logarithm (base e) is used. Common values: 0 (ln), 2 (log2), 10 (log10). Must be greater than 1 or 0." />
 			
-			<BoolOption name="global_use_cmsis" text="Use CMSIS" default="false" global="true"/>
+			<BoolOption name="global_use_cmsis" text="Use CMSIS" default="false" global="true" description="Enable CMSIS-optimized implementations for ARM Cortex processors. Improves performance on embedded systems."/>
 			
-			<Expression name="count" value="input.shape.flat" />
-			<Expression name="scale" value="base == 0 ? 1 : (1.0 / Math.log(base))" />
+			<Expression name="count" value="input.shape.flat" description="Total number of elements in the input tensor (computed from flattened shape)."/>
+			<Expression name="scale" value="base == 0 ? 1 : (1.0 / Math.log(base))" description="Scaling factor for converting natural log to the desired base."/>
 
 			<!-- Quantized -->
-			<Expression name="in_shift" value="input.shift" />
-			<Expression name="out_shift" value="(input.shift + 8).log2.floor" />
-			<Expression name="actual_base" value="base == 0 ? Math.E : base" />
-			<Expression name="shift_corr" value="input.type == System.Q15 ? 1 : 0" />
-			<Expression name="offset_q" value="(2.pow(in_shift).log / actual_base.log).quantize(input.type, out_shift)"/>
-			<Expression name="scale_q" value="actual_base.log.inv.quantize(input.type, out_shift + shift_corr)" />
+			<Expression name="in_shift" value="input.shift" description="Input tensor shift value for fixed-point arithmetic."/>
+			<Expression name="out_shift" value="(input.shift + 8).log2.floor" description="Output tensor shift value computed based on input shift."/>
+			<Expression name="actual_base" value="base == 0 ? Math.E : base" description="Actual base value used in computation (e if base is 0)."/>
+			<Expression name="shift_corr" value="input.type == System.Q15 ? 1 : 0" description="Shift correction factor for Q15 fixed-point type."/>
+			<Expression name="offset_q" value="(2.pow(in_shift).log / actual_base.log).quantize(input.type, out_shift)" description="Quantized offset for fixed-point logarithm computation."/>
+			<Expression name="scale_q" value="actual_base.log.inv.quantize(input.type, out_shift + shift_corr)" description="Quantized scale factor for fixed-point logarithm computation."/>
 
-			<OutputSocket name="output" type="input.type" shape="input.shape" shift="out_shift" description="Output buffer. It will have the same shape as the input."/>
+			<OutputSocket name="output" type="input.type" shape="input.shape" shift="out_shift" description="Output tensor containing logarithm values. Has the same shape and data type as the input."/>
 		</Parameters>
 
 		<Contracts>

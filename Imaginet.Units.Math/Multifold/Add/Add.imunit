@@ -5,26 +5,34 @@
 		<DisplayPath>/Math/Multi-Tensor Operations</DisplayPath>
 
 		<Description>
-			Add arguments with broadcasting.
+			<Header>Description</Header>
+			Perform element-wise addition of two tensors, automatically handling different shapes through broadcasting.
 			
+			This unit adds corresponding elements from two input tensors together. When the input shapes differ, broadcasting rules are applied to automatically expand dimensions, allowing tensors of different shapes to be added together. The output shape matches the first operand's shape.
+			
+			Broadcasting enables operations like adding a scalar to a matrix, adding a vector to each row of a matrix, or combining tensors with compatible but non-identical dimensions. Currently supports float32 data type.
+
+			<Header>Usage</Header>
+			Use the Addition unit when you need to combine two tensors element-wise, such as adding bias terms to features or merging outputs from parallel processing paths.
+
 			<Header>Python implementation</Header>
 			<Inline fragment="add.py:add" language="Python" />
 		</Description>
 
 		<Parameters>
-			<InputSocket name="a" description="First operand" />
-			<InputSocket name="b" description="Second operand" />
-			<OutputSocket name="output" type="a.type" shape="a.shape" text="Output" description="Output buffer. It will have the same shape as the first operand." />
+			<InputSocket name="a" description="First input tensor. Supports float32 data type. Determines the output shape." />
+			<InputSocket name="b" description="Second input tensor. Supports float32 data type. Will be broadcast to match the first operand if shapes differ." />
+			<OutputSocket name="output" type="a.type" shape="a.shape" text="Output" description="Output tensor containing element-wise sum. Has the same shape and data type as the first operand." />
 
-			<Expression name="bcast" value="a.shape.broadcast(b.shape)" conditional="b != null"  description="Result from shape broadcast"/>
+			<Expression name="bcast" value="a.shape.broadcast(b.shape)" conditional="b != null"  description="Broadcasting configuration computed from the two input shapes."/>
 
-			<Expression name="left" value="bcast.left" conditional="bcast != null" description="The product of axis length of left parts in dimensions with no boardcast, minimum 1" />
-			<Expression name="group1" value="bcast.group1" conditional="bcast != null" description="The product of axis length of left group which needs boardcasting, minimum 1" />
-			<Expression name="middle" value="bcast.middle" conditional="bcast != null" description="The product of axis length of middle parts in dimensions with no boardcast, minimum 1" />
-			<Expression name="group2" value="bcast.group2" conditional="bcast != null" description="The product of axis length of right group which needs boardcasting, minimum 1" />
-			<Expression name="right" value="bcast.right" conditional="bcast != null" description="The product of axis length of right parts in dimensions with no boardcast, minimum 1" />
+			<Expression name="left" value="bcast.left" conditional="bcast != null" description="Number of elements in left non-broadcast dimensions." />
+			<Expression name="group1" value="bcast.group1" conditional="bcast != null" description="Number of elements in left broadcast group." />
+			<Expression name="middle" value="bcast.middle" conditional="bcast != null" description="Number of elements in middle non-broadcast dimensions." />
+			<Expression name="group2" value="bcast.group2" conditional="bcast != null" description="Number of elements in right broadcast group." />
+			<Expression name="right" value="bcast.right" conditional="bcast != null" description="Number of elements in right non-broadcast dimensions." />
 
-			<Expression name="count" value="a.shape.flat" />
+			<Expression name="count" value="a.shape.flat" description="Total number of elements in the first operand (computed from flattened shape)." />
 		</Parameters>
 
 		<Implementations>

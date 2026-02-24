@@ -6,25 +6,32 @@
 		<DisplayPath>/Math/Multi-Tensor Operations</DisplayPath>
 
 		<Description>
-			Computes dot product transposed to increase memory locality.
-			Defined as: dott(A,B) = dot(A,B.T).T
+			<Header>Description</Header>
+			Compute a transposed dot product optimized for memory access patterns, defined as dott(A,B) = dot(A, B.T).T.
+			
+			This unit performs matrix multiplication with an implicit transpose operation to improve cache locality and memory access efficiency. Instead of computing the standard dot product and then transposing, the operation is structured to access memory more sequentially during computation.
+			
+			The inputs must be 1D or 2D tensors, and their innermost dimensions must match. Currently supports float32 data type with axis parameter fixed at 0.
+
+			<Header>Usage</Header>
+			Use the Dot Product Transpose unit when you need to perform matrix multiplication with transposed layout, particularly in scenarios where memory access patterns are critical for performance.
 
 			<Header>Python implementation</Header>
 			<Inline fragment="dott.py:dott" language="Python" />
 		</Description>
 
 		<Parameters>
-			<InputSocket name="a" description="First operand"/>
-			<InputSocket name="b" description="Second operand"/>
-			<Expression name="d0" value="a.shape.size(0)" />
-			<Expression name="d1" value="a.shape.size(1)" />
-			<Expression name="d2" value="b.shape.size(1)" />
+			<InputSocket name="a" description="First input tensor (1D or 2D). Supports float32 data type. Its innermost dimension must match the innermost dimension of the second operand."/>
+			<InputSocket name="b" description="Second input tensor (1D or 2D). Supports float32 data type. Will be implicitly transposed during the operation."/>
+			<Expression name="d0" value="a.shape.size(0)" description="Size of the innermost dimension of the first operand (shared multiplication dimension)." />
+			<Expression name="d1" value="a.shape.size(1)" description="Size of the outer dimension of the first operand." />
+			<Expression name="d2" value="b.shape.size(1)" description="Size of the outer dimension of the second operand." />
 
-			<BoolOption name="global_use_cmsis" text="Use CMSIS" default="false" global="true"/>
+			<BoolOption name="global_use_cmsis" text="Use CMSIS" default="false" global="true" description="Enable CMSIS-optimized implementations for ARM Cortex processors. Improves performance on embedded systems."/>
 
-			<Int32Option name="axis" min="0" max="9" ui="textbox" text="Axis" description="The axis in the result array along which the input arrays are multiplied and summed." />
+			<Int32Option name="axis" min="0" max="9" ui="textbox" text="Axis" description="The axis along which multiplication and summation occur. Currently only axis 0 is supported." />
 
-			<OutputSocket name="output" type="a.type" shape="a.shape.remove(0).insert(1,b.shape.size(1))" />
+			<OutputSocket name="output" type="a.type" shape="a.shape.remove(0).insert(1,b.shape.size(1))" description="Output tensor containing the transposed dot product result. Shape is derived by removing the innermost dimension from the first operand and inserting the outer dimension of the second operand."/>
 		</Parameters>
 
 		<Contracts>

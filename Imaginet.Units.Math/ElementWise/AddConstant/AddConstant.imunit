@@ -5,24 +5,35 @@
 		<DisplayPath>/Math/Element Wise</DisplayPath>
 
 		<Description>
-			Computes (x+A) given a constant A.
+			<Header>Description</Header>
+			Add a constant value to every element in the input tensor, computing (x + A) for each element.
+			
+			This unit performs element-wise addition of a user-defined constant A to all elements in the input tensor, preserving the shape and dimensions. The constant can be positive or negative, effectively allowing both addition and subtraction operations.
+			
+			The unit supports multiple data types (float32, int8, int16, int32) and fixed-point formats (Q7, Q15, Q31) with optional CMSIS optimized implementations for ARM-based embedded systems. For fixed-point types, the constant is automatically quantized to match the input format.
+
+			<Header>Usage</Header>
+			Use the Add Constant unit when you need to apply a uniform offset or bias to all values in a tensor.
+
+			<Header>Python implementation</Header>
+			<Inline fragment="addi.py:addi" language="Python" />
 		</Description>
 
 		<Parameters>
-			<InputSocket name="input" />
-			<Expression name="count" value="input.shape.flat" description="Number of elements" />
+			<InputSocket name="input" description="Input tensor to which the constant will be added. Supports float32, int8, int16, int32, and fixed-point types (Q7, Q15, Q31)."/>
+			<Expression name="count" value="input.shape.flat" description="Total number of elements in the input tensor (computed from flattened shape)." />
 			
-			<BoolOption name="global_use_cmsis" text="Use CMSIS" default="false" global="true"/>
-			<Int32Option name="shift" value="0" />
-			<DoubleOption name="A" text="Constant" description="The constant A" />
-			<Expression name="A_quantized" value="A.quantize(input.type, input.shift + shift)" />
-			<Expression name="A_round" value="A.round()" />
+			<BoolOption name="global_use_cmsis" text="Use CMSIS" default="false" global="true" description="Enable CMSIS-optimized implementations for ARM Cortex processors. Improves performance on embedded systems."/>
+			<Int32Option name="shift" value="0" description="Bit shift applied to the output for fixed-point arithmetic. Used to adjust the scale of the result."/>
+			<DoubleOption name="A" text="Constant" description="The constant value to add to each element. Can be positive or negative."/>
+			<Expression name="A_quantized" value="A.quantize(input.type, input.shift + shift)" description="The constant A quantized to match the input type and shift for fixed-point operations."/>
+			<Expression name="A_round" value="A.round()" description="The constant A rounded to the nearest integer for integer type operations."/>
 			<OutputSocket 
 				name="output"
 				type="input.type"
 				shape="input.shape"
 				text="Output" 
-				description="Output buffer. It will have the same shape as the input." 
+				description="Output tensor containing the result of adding the constant. Has the same shape and data type as the input." 
 				shift="input.shift + shift" />
 		</Parameters>
 

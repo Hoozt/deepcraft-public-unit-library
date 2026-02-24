@@ -1,0 +1,37 @@
+<?xml version = "1.0" encoding="utf-8" ?>
+<Imaginet>
+	<Unit name="Imaginet.Units.Filter.Threshold">
+		<DisplayName>Threshold</DisplayName>
+		<DisplayPath>/Machine Learning/Postprocessing</DisplayPath>
+		<Description>
+			<Header>Description</Header>
+			Set values below a threshold to zero while preserving values at or above the threshold.
+			
+			This unit performs element-wise thresholding, where each input value is compared to a threshold. Values greater than or equal to the threshold pass through unchanged, while values below are replaced with 0.0. The operation preserves the tensor shape and data type.
+			
+			Supports float32 data type only.
+
+			<Header>Usage</Header>
+			Use the Threshold unit to suppress weak confidence scores, filter out low-amplitude signals, or create sparse representations by removing values below a minimum level.
+		</Description>
+		<Parameters>
+			<InputSocket name="input" description="Input tensor containing values to be thresholded. Can be any shape. Supports float32 data type only." />
+			<OutputSocket name="output" type="input.type" shape="input.shape" description="Output tensor where values below the threshold are set to 0.0 and values at or above are preserved. Has the same shape and data type as the input." />
+
+			<DoubleOption name="threshold" text="Threshold" description="Cutoff value (typically 0.0-1.0). Values below this are set to 0.0, values at or above are preserved unchanged." />
+			<Expression name="count" value="input.shape.flat" description="Total number of elements in the input tensor (computed from flattened shape)." />
+		</Parameters>
+
+		<Contracts>
+			<Assert test="threshold >= 0" error="Threshold needs to be in the range [0.0, 1.0]." />
+			<Assert test="threshold &lt;= 1" error="Threshold needs to be in the range [0.0, 1.0]." />
+		</Contracts>
+
+		<Implementations>
+			<Implementation language="C" fragment="threshold.h:threshold_f32" call="threshold_f32(input, output, count, threshold)">
+				<Conditional value="input.type == System.Float32" />
+			</Implementation>
+		</Implementations>
+	</Unit>
+</Imaginet>
+
