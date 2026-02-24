@@ -1,3 +1,5 @@
+![Banner](banner.png)
+
 # DEEPCRAFT™ Studio Public Unit Library
 
 **DEEPCRAFT™ Studio** (formerly Imagimob Studio) is an end-to-end platform for developing AI / Machine Learning (ML) models for the edge. The platform is designed to support users in creating robust and high-quality models that are ready for deployment in commercial products.
@@ -37,5 +39,6 @@ To submit a unit:
 ## 📜 License
 
 This project is licensed under the **MIT License**.
+
 
 
